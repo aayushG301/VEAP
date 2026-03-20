@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VEAP Emergency Profile – Critical medical information for first responders.">
+  <title>VEAP – Emergency Profile</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚨</text></svg>">
+</head>
+<body>
+  <!-- Session Timer -->
+  <div class="session-timer" id="sessionTimer">
+    <div class="session-timer__bar" id="sessionBar" style="width:100%"></div>
+    <div class="session-timer__label" id="sessionLabel">5:00</div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <!-- Navbar -->
+      <nav class="navbar">
+        <div class="navbar__brand">
+          <span class="navbar__logo">🚨</span>
+          VEAP Emergency
+        </div>
+      </nav>
+
+      <!-- Loading State -->
+      <div id="loadingState" class="text-center" style="padding:var(--space-2xl) 0">
+        <div style="font-size:48px;animation:pulse-dot 1.5s ease infinite">🛡️</div>
+        <p class="mt-md text-muted">Loading emergency profile...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="errorState" class="error-state hidden">
+        <div class="error-state__icon">⚠️</div>
+        <h2 class="error-state__title">Invalid QR Code</h2>
+        <p class="error-state__text">This emergency profile could not be found. The QR code may be invalid or expired.</p>
+        <a href="index.html" class="btn btn--ghost">← Go to VEAP Home</a>
+      </div>
+
+      <!-- Rate Limited State -->
+      <div id="rateLimitState" class="rate-limit hidden">
+        <div class="rate-limit__icon">🚫</div>
+        <h3>Too Many Requests</h3>
+        <p class="text-muted mt-sm">Suspicious activity detected. Please wait before trying again.</p>
+        <p id="rateLimitTimer" class="mt-md" style="font-size:var(--font-2xl);font-weight:700;color:var(--emergency-red)"></p>
+        <button id="reportMisuseFromRate" class="btn btn--ghost btn--sm mt-lg">🚩 Report Misuse</button>
+      </div>
+
+      <!-- Session Expired State -->
+      <div id="expiredState" class="hidden" style="text-align:center;padding:var(--space-2xl) 0">
+        <div style="font-size:48px;margin-bottom:var(--space-md)">⏰</div>
+        <h3>Session Expired</h3>
+        <p class="text-muted mt-sm mb-lg">Your access session has timed out for security purposes.</p>
+        <button id="reloadBtn" class="btn btn--primary btn--lg btn--full">🔄 Reload & Verify Again</button>
+      </div>
+
+      <!-- ========== MAIN EMERGENCY CONTENT ========== -->
+      <div id="emergencyContent" class="hidden">
+
+        <!-- LEVEL 1: Public - Instant -->
+        <div id="level1" class="animate-in">
+          <div class="access-level access-level--public">
+            <span class="access-dot"></span>
+            Level 1 — Public Access
+          </div>
+
+          <!-- Patient Name -->
+          <h3 id="patientName" style="margin-bottom:var(--space-md)"></h3>
+
+          <!-- Blood Group + Conditions -->
+          <div style="display:flex;flex-wrap:wrap;gap:var(--space-sm);margin-bottom:var(--space-lg)">
+            <span id="bloodGroupBadge" class="badge badge--blood"></span>
+            <div id="conditionBadges"></div>
+          </div>
+
+          <!-- Emergency Instructions -->
+          <div id="emergencyInstructionsCard" class="card card--danger hidden" style="margin-bottom:var(--space-md)">
+            <h4 style="color:var(--emergency-red);margin-bottom:var(--space-sm)">⚠️ Emergency Instructions</h4>
+            <p id="emergencyInstructionsText" style="color:var(--text-primary);font-size:var(--font-md)"></p>
+          </div>
+
+          <!-- Allergies Alert -->
+          <div id="allergiesCard" class="card card--warning hidden" style="margin-bottom:var(--space-md)">
+            <h4 style="color:var(--warning-amber);margin-bottom:var(--space-sm)">🚨 Allergies</h4>
+            <p id="allergiesText" style="color:var(--text-primary)"></p>
+          </div>
+
+          <!-- Call Emergency Contact (primary) -->
+          <div id="primaryContactCall" class="hidden" style="margin-bottom:var(--space-md)">
+            <a id="callPrimaryBtn" href="tel:" class="btn btn--danger btn--lg btn--full pulse-emergency">
+              📞 Call Emergency Contact
+            </a>
+            <p id="primaryContactLabel" class="text-xs text-center mt-sm text-muted"></p>
+          </div>
+
+          <!-- AI Emergency Assistant -->
+          <div class="section-title mt-lg">🤖 AI Emergency Assistant</div>
+          <div class="emergency-type-grid" id="emergencyTypeGrid"></div>
+          <div id="aiResponseContainer"></div>
+        </div>
+
+        <!-- LEVEL 2: Verified Access -->
+        <div id="level2Section" class="mt-xl">
+          <div class="access-level access-level--verified">
+            <span class="access-dot"></span>
+            Level 2 — Verified Access
+          </div>
+
+          <!-- OTP Verification (shown when not unlocked) -->
+          <div id="otpSection" class="card">
+            <h4 style="margin-bottom:var(--space-sm)">🔐 Verify Your Identity</h4>
+            <p class="text-sm text-muted mb-md">Enter the 4-digit OTP to access additional medical data.</p>
+
+            <div class="otp-container">
+              <input type="text" class="otp-input" maxlength="1" inputmode="numeric" data-index="0" id="otp-0">
+              <input type="text" class="otp-input" maxlength="1" inputmode="numeric" data-index="1" id="otp-1">
+              <input type="text" class="otp-input" maxlength="1" inputmode="numeric" data-index="2" id="otp-2">
+              <input type="text" class="otp-input" maxlength="1" inputmode="numeric" data-index="3" id="otp-3">
+            </div>
+
+            <p id="otpError" class="text-sm text-center hidden" style="color:var(--emergency-red);margin-bottom:var(--space-md)"></p>
+            <p id="otpHint" class="text-xs text-center text-muted mb-md"></p>
+
+            <button id="verifyOtpBtn" class="btn btn--warning btn--full">🔓 Verify OTP</button>
+          </div>
+
+          <!-- Level 2 Data (hidden until verified) -->
+          <div id="level2Data" class="hidden">
+            <!-- Emergency Contacts List -->
+            <div class="section-title">📞 Emergency Contacts</div>
+            <div id="contactsList"></div>
+
+            <!-- Basic Medical History -->
+            <div id="medHistorySection" class="hidden">
+              <div class="section-title">📋 Medical History</div>
+              <div class="card">
+                <p id="medHistoryText" style="white-space:pre-wrap"></p>
+              </div>
+            </div>
+
+            <!-- Medications -->
+            <div id="medicationsSection" class="hidden">
+              <div class="section-title">💊 Current Medications</div>
+              <div class="card">
+                <p id="medicationsText"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEVEL 3: Restricted Access -->
+        <div id="level3Section" class="mt-xl">
+          <div class="access-level access-level--restricted">
+            <span class="access-dot"></span>
+            Level 3 — Restricted Access
+          </div>
+
+          <!-- Override Button (shown when not unlocked) -->
+          <div id="overrideSection" class="card card--danger">
+            <h4 style="margin-bottom:var(--space-sm)">🔴 Emergency Override</h4>
+            <p class="text-sm text-muted mb-md">Only use in genuine emergencies. This will be logged and the patient will be notified.</p>
+            <button id="overrideBtn" class="btn btn--danger btn--full">⚡ Emergency Override — Unlock All Data</button>
+          </div>
+
+          <!-- Level 3 Data -->
+          <div id="level3Data" class="hidden">
+            <div class="card card--info animate-in">
+              <h4 style="margin-bottom:var(--space-md);color:var(--medical-blue)">📄 Complete Medical Profile</h4>
+              <div id="fullProfileData"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Misuse -->
+        <div class="mt-xl text-center">
+          <button id="reportMisuseBtn" class="btn btn--ghost btn--sm">
+            🚩 Report Misuse
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <div class="container">VEAP &copy; 2026 · Emergency Access System</div>
+    </footer>
+  </div>
+
+  <!-- Override Confirmation Modal -->
+  <div id="overrideModal" class="modal-overlay">
+    <div class="modal">
+      <h3 class="modal__title" style="color:var(--emergency-red)">⚠️ Emergency Override</h3>
+      <p class="modal__text">This will unlock ALL medical data. This action is logged and the patient will be notified. Only proceed if this is a genuine emergency.</p>
+      <div class="modal__actions">
+        <button id="cancelOverrideBtn" class="btn btn--ghost" style="flex:1">Cancel</button>
+        <button id="confirmOverrideBtn" class="btn btn--danger" style="flex:1">Override</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Misuse Modal -->
+  <div id="reportModal" class="modal-overlay">
+    <div class="modal">
+      <h3 class="modal__title">🚩 Report Misuse</h3>
+      <p class="modal__text">If you believe this QR code is being misused or this page was accessed without authorization, submit a report.</p>
+      <div class="modal__actions">
+        <button id="cancelReportBtn" class="btn btn--ghost" style="flex:1">Cancel</button>
+        <button id="confirmReportBtn" class="btn btn--primary" style="flex:1">Submit Report</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/security.js"></script>
+  <script src="js/ai-assistant.js"></script>
+  <script src="js/emergency.js"></script>
+</body>
+</html>
