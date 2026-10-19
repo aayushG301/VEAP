@@ -1,0 +1,30 @@
+{
+  "name": "veap",
+  "version": "2.0.0",
+  "private": true,
+  "description": "VEAP - Verified Emergency Access Protocol",
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "dev:ml": "cd apps/ml-service && python3 -m uvicorn app.main:app --reload --port 8001",
+    "seed": "npm run seed -w apps/backend",
+    "typecheck": "npm run typecheck -w apps/backend && npm run typecheck -w apps/frontend",
+    "test": "npm test -w apps/backend && npm test -w apps/frontend",
+    "test:ml": "cd apps/ml-service && python3 -m pytest -q",
+    "test:e2e": "node scripts/e2e-smoke.mjs",
+    "build": "npm run build -w apps/frontend",
+    "dev:ml:win": "cd apps/ml-service && python -m uvicorn app.main:app --reload --port 8001",
+    "test:ml:win": "cd apps/ml-service && python -m pytest -q",
+    "test:ui": "node scripts/ui-e2e.mjs"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.14.0"
+  }
+}

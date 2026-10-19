@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" role="img" aria-label="VEAP - Verified Emergency Access Protocol">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+    <linearGradient id="c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f87171"/><stop offset="1" stop-color="#dc2626"/></linearGradient>
+  </defs>
+  <g transform="translate(8 8) scale(1)">
+    <rect width="64" height="64" rx="16" fill="url(#g)"/>
+    <path d="M32 9.5 49.5 16v15.2c0 11.3-7.4 19.4-17.5 23.3C21.9 50.6 14.5 42.5 14.5 31.2V16z" fill="#fff"/>
+    <rect x="28.6" y="20.5" width="6.8" height="21" rx="2.2" fill="url(#c)"/>
+    <rect x="21.5" y="27.6" width="21" height="6.8" rx="2.2" fill="url(#c)"/>
+  </g>
+  <text x="88" y="44" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="38" font-weight="800" fill="#f1f5f9" letter-spacing="-1">VEAP</text>
+  <text x="89" y="62" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10.500" font-weight="600" fill="#94a3b8" letter-spacing="1.800">VERIFIED EMERGENCY ACCESS</text>
+</svg>

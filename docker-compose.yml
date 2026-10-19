@@ -1,0 +1,42 @@
+# Demo-grade stack: nginx(frontend) -> backend -> mongo + ml. NOTE: written but not executed in the build sandbox.
+services:
+  mongo:
+    image: mongo:7
+    volumes: ["mongo-data:/data/db"]
+    expose: ["27017"]
+  ml:
+    build: ./apps/ml-service
+    environment:
+      ML_SERVICE_KEY: ${ML_SERVICE_KEY:-change-me-service-key}
+    expose: ["8001"]
+  backend:
+    build: ./apps/backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "4000"
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: ${MONGO_DB:-veap}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      ML_SERVICE_URL: http://ml:8001
+      ML_SERVICE_KEY: ${ML_SERVICE_KEY:-change-me-service-key}
+      OTP_MODE: ${OTP_MODE:-mock}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+      DEFAULT_COUNTRY_CODE: ${DEFAULT_COUNTRY_CODE:-+91}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
+      ACCESS_SESSION_SECRET: ${ACCESS_SESSION_SECRET:-}
+      QR_SIGNING_SECRET: ${QR_SIGNING_SECRET:-}
+      PASSWORD_PEPPER: ${PASSWORD_PEPPER:-}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
+    depends_on: [mongo, ml]
+    expose: ["4000"]
+  frontend:
+    build: ./apps/frontend
+    ports: ["8080:80"]
+    depends_on: [backend]
+volumes:
+  mongo-data:

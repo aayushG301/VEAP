@@ -1,0 +1,136 @@
+{
+  "allergy_rules": [
+    {
+      "a": [
+        "penicillin",
+        "amoxicillin",
+        "ampicillin"
+      ],
+      "b": [
+        "penicillin",
+        "amoxicillin",
+        "ampicillin",
+        "augmentin",
+        "cloxacillin"
+      ],
+      "level": "high",
+      "msg": "Penicillin-class allergy: avoid penicillin antibiotics.",
+      "aKind": "allergy"
+    },
+    {
+      "a": [
+        "aspirin",
+        "nsaid",
+        "ibuprofen"
+      ],
+      "b": [
+        "aspirin",
+        "ibuprofen",
+        "naproxen",
+        "diclofenac",
+        "ketorolac"
+      ],
+      "level": "high",
+      "msg": "NSAID/aspirin allergy: avoid all NSAIDs.",
+      "aKind": "allergy"
+    },
+    {
+      "a": [
+        "sulfa",
+        "sulfonamide"
+      ],
+      "b": [
+        "sulfamethoxazole",
+        "cotrimoxazole",
+        "bactrim"
+      ],
+      "level": "high",
+      "msg": "Sulfa allergy: avoid sulfonamide antibiotics.",
+      "aKind": "allergy"
+    },
+    {
+      "a": [
+        "latex"
+      ],
+      "b": [
+        "latex"
+      ],
+      "level": "moderate",
+      "msg": "Latex allergy: use latex-free gloves and equipment.",
+      "aKind": "allergy"
+    }
+  ],
+  "med_rules": [
+    {
+      "a": [
+        "warfarin",
+        "apixaban",
+        "rivaroxaban",
+        "dabigatran",
+        "heparin",
+        "clopidogrel",
+        "eliquis",
+        "xarelto"
+      ],
+      "b": [
+        "aspirin",
+        "ibuprofen",
+        "naproxen",
+        "diclofenac",
+        "nsaid"
+      ],
+      "level": "high",
+      "msg": "Anticoagulant plus NSAID/aspirin: major bleeding risk."
+    },
+    {
+      "a": [
+        "warfarin"
+      ],
+      "b": [
+        "amiodarone",
+        "fluconazole",
+        "metronidazole"
+      ],
+      "level": "moderate",
+      "msg": "Warfarin interaction: INR may rise; monitor bleeding."
+    },
+    {
+      "a": [
+        "insulin"
+      ],
+      "b": [
+        "propranolol",
+        "metoprolol",
+        "atenolol"
+      ],
+      "level": "moderate",
+      "msg": "Beta-blocker may mask symptoms of low blood sugar in insulin users."
+    },
+    {
+      "a": [
+        "sildenafil",
+        "tadalafil"
+      ],
+      "b": [
+        "nitroglycerin",
+        "isosorbide"
+      ],
+      "level": "high",
+      "msg": "PDE5 inhibitor plus nitrate: severe hypotension. Do NOT give nitrates."
+    },
+    {
+      "a": [
+        "ssri",
+        "sertraline",
+        "fluoxetine",
+        "citalopram"
+      ],
+      "b": [
+        "tramadol",
+        "linezolid"
+      ],
+      "level": "moderate",
+      "msg": "Risk of serotonin syndrome."
+    }
+  ]
+}
