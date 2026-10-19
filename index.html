@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VEAP – Verified Emergency Access Protocol. A QR-based emergency healthcare system with intelligent access control.">
+  <title>VEAP – Verified Emergency Access Protocol</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="container">
+      <!-- Navbar -->
+      <nav class="navbar">
+        <a href="index.html" class="navbar__brand">
+          <span class="navbar__logo">🛡️</span>
+          VEAP
+        </a>
+        <div class="navbar__links">
+          <a href="dashboard.html" class="btn btn--primary btn--sm">Get Started</a>
+        </div>
+      </nav>
+
+      <!-- Hero -->
+      <section class="hero" id="hero">
+        <div class="hero__icon">🩺</div>
+        <h1 class="hero__title">Your Medical ID,<br>Always Ready.</h1>
+        <p class="hero__subtitle">One QR scan delivers critical health data to first responders — with privacy controls that protect you.</p>
+        <div class="hero__actions">
+          <a href="dashboard.html" class="btn btn--primary btn--lg btn--full" id="cta-setup">
+            🛡️ Set Up Your Profile
+          </a>
+          <a href="#how-it-works" class="btn btn--ghost btn--lg btn--full" id="cta-learn">
+            How It Works ↓
+          </a>
+        </div>
+      </section>
+
+      <!-- How It Works -->
+      <section class="features" id="how-it-works">
+        <h2 class="section-title">How It Works</h2>
+        <div class="features__grid">
+          <div class="card animate-in">
+            <div class="feature-card">
+              <div class="feature-card__icon feature-card__icon--blue">📱</div>
+              <div>
+                <h4 class="feature-card__title">1. Create Your Profile</h4>
+                <p class="feature-card__desc">Enter your medical data, emergency contacts, and critical conditions.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card animate-in" style="animation-delay: 0.1s">
+            <div class="feature-card">
+              <div class="feature-card__icon feature-card__icon--green">📷</div>
+              <div>
+                <h4 class="feature-card__title">2. Generate Your QR</h4>
+                <p class="feature-card__desc">Get a unique QR code that links to your emergency profile.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card animate-in" style="animation-delay: 0.2s">
+            <div class="feature-card">
+              <div class="feature-card__icon feature-card__icon--amber">🔒</div>
+              <div>
+                <h4 class="feature-card__title">3. Multi-Level Access</h4>
+                <p class="feature-card__desc">Critical info is instant. Sensitive data requires verification.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card animate-in" style="animation-delay: 0.3s">
+            <div class="feature-card">
+              <div class="feature-card__icon feature-card__icon--red">🤖</div>
+              <div>
+                <h4 class="feature-card__title">4. AI First-Aid Guide</h4>
+                <p class="feature-card__desc">Smart emergency assistant provides step-by-step instructions.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trust Section -->
+      <section class="features">
+        <h2 class="section-title">Built for Safety</h2>
+        <div class="card">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg);text-align:center">
+            <div>
+              <div style="font-size:2rem;margin-bottom:4px">🔐</div>
+              <div style="font-weight:600;font-size:var(--font-sm)">OTP Verified</div>
+              <div class="text-xs text-muted">Sensitive data locked</div>
+            </div>
+            <div>
+              <div style="font-size:2rem;margin-bottom:4px">⏱️</div>
+              <div style="font-weight:600;font-size:var(--font-sm)">Auto-Expire</div>
+              <div class="text-xs text-muted">Sessions time out</div>
+            </div>
+            <div>
+              <div style="font-size:2rem;margin-bottom:4px">📊</div>
+              <div style="font-weight:600;font-size:var(--font-sm)">Scan Logging</div>
+              <div class="text-xs text-muted">Every access tracked</div>
+            </div>
+            <div>
+              <div style="font-size:2rem;margin-bottom:4px">🚫</div>
+              <div style="font-weight:600;font-size:var(--font-sm)">Rate Limited</div>
+              <div class="text-xs text-muted">Abuse prevention</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        VEAP – Verified Emergency Access Protocol &copy; 2026
+      </div>
+    </footer>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
