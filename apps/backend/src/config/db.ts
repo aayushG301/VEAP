@@ -1,7 +1,7 @@
 import { MongoClient, type Collection, type Db } from "mongodb";
 import { env } from "./env";
 
-const NAMES = ["users", "userKeys", "profiles", "sessions", "refreshTokens", "qrTokens", "honeytokens", "scanEvents", "otps", "accessSessions", "audit", "notifications", "securityEvents"] as const;
+const NAMES = ["users", "userKeys", "profiles", "sessions", "refreshTokens", "qrTokens", "honeytokens", "scanEvents", "otps", "accessSessions", "audit", "notifications", "securityEvents", "hospitals", "staff", "breakGlass", "telegramLinks", "telegramLinkCodes"] as const;
 type Name = (typeof NAMES)[number];
 
 /** Typed-loosely collection handles, populated by connectDb(). Documents use camelCase fields; ids are strings (uuid) unless noted. */
@@ -31,11 +31,17 @@ export async function connectDb(): Promise<Db> {
     col.audit.createIndex({ tokenId: 1, action: 1, createdAt: -1 }),
     col.notifications.createIndex({ userId: 1, _id: -1 }),
     col.securityEvents.createIndex({ ts: -1 }),
+    col.staff.createIndex({ hospitalId: 1 }),
+    col.breakGlass.createIndex({ tokenId: 1, createdAt: -1 }),
+    col.breakGlass.createIndex({ staffId: 1, createdAt: -1 }),
+    col.telegramLinks.createIndex({ userId: 1, chatId: 1 }, { unique: true }),
   ]);
   // Housekeeping: expire raw scan events after 24h and OTP records after ~1h. Non-fatal if the server lacks TTL support.
   await Promise.allSettled([
     col.scanEvents.createIndex({ at: 1 }, { expireAfterSeconds: 86400 }),
     col.otps.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 }),
+    col.telegramLinkCodes.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 }),
+    col.breakGlass.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 }),
   ]);
   return database;
 }

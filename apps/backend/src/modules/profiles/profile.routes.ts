@@ -18,7 +18,12 @@ const view = async (userId: string) => {
 profileRouter.get("/", async (req, res) => { res.json(await view(req.user!.id)); });
 
 profileRouter.put("/", validate(profileSchema), async (req, res) => {
-  await saveProfile(req.user!.id, req.body);
+  const { confirmCurrent, ...body } = req.body;
+  // The "last verified by patient" date is stamped by the server clock, never trusted from the client.
+  if (confirmCurrent) body.lastVerifiedAt = new Date().toISOString();
+  else body.lastVerifiedAt = (await loadProfile(req.user!.id)).profile.lastVerifiedAt;
+  if (body.lastVerifiedAt === undefined) delete body.lastVerifiedAt;
+  await saveProfile(req.user!.id, body);
   await writeAudit({ userId: req.user!.id, action: "profile_updated", actor: "self", ip: clientIp(req) });
   res.json(await view(req.user!.id));
 });

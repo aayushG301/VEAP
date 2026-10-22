@@ -32,7 +32,7 @@ export default function VerifyPanel({ token, onGranted }: { token: string; onGra
       <h4 className="card__title">🔐 Verify your identity</h4>
       {step === "phone" ? (
         <form onSubmit={(e) => { e.preventDefault(); send(); }}>
-          <p className="text-sm mb-md">To protect the patient, a 6-digit code is sent to <b style={{ color: "var(--text-primary)" }}>their emergency contact</b>. Enter your own number so this access is logged, then ask the contact for the code.</p>
+          <p className="text-sm mb-md">To protect the patient, a 6-digit code is sent to <b style={{ color: "var(--text-primary)" }}>their emergency contact</b> (privately, on Telegram or SMS). Enter your own number so this access is logged, then ask the contact for the code.</p>
           <div className="form-group"><label className="form-label" htmlFor="ph">Your phone number</label>
             <input id="ph" className="form-input" type="tel" required inputMode="tel" autoComplete="tel" placeholder="+91 90000 12345" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
           {err && <div className="form-error" role="alert">{err}</div>}
@@ -43,6 +43,7 @@ export default function VerifyPanel({ token, onGranted }: { token: string; onGra
           <p className="text-sm text-center">{otp.sentTo === "emergency_contact"
             ? <>Code sent to <b style={{ color: "var(--text-primary)" }}>{otp.contactName || "the patient's emergency contact"}</b> ({otp.maskedTarget}). Ask them to read it to you.</>
             : <>The patient has no emergency contact on file, so the code was sent to <b style={{ color: "var(--text-primary)" }}>your phone</b>.</>}</p>
+          {otp.delivery === "telegram" && <p className="text-xs text-muted text-center mt-sm">🔒 The code was sent privately to their Telegram. Only ask for it if you are physically with the patient. They can also block this request.</p>}
           {otp.devOtp && (
             <div className="demo-banner mt-md"><span>🧪 <b>Demo mode:</b> SMS is simulated. The code is <b>{otp.devOtp}</b></span>
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setCode(otp.devOtp); verify(otp.devOtp); }}>Auto-fill</button></div>)}

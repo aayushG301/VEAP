@@ -24,3 +24,14 @@
 * Tier 1 data (name, blood group, allergies, contacts) is public to anyone with the QR by design; owners choose what goes there.
 * The triage model is trained on synthetic data and is not clinically validated.
 * No independent audit or penetration test has been performed; not HIPAA/GDPR certified.
+
+
+## Level 3 override and contact alerts (v2.1)
+* **Break-glass is no longer "type a reason".** The responder must hold a Level 2 session, then authenticate as hospital staff: hospital ID + council/staff ID + 6-digit PIN checked against the registry (argon2id hashes, hospital and staff must both be active, ID must belong to that hospital).
+* **No enumeration:** unknown ID, wrong hospital, wrong PIN, revoked staff and suspended hospital return the same message; unknown IDs burn the same CPU time as wrong PINs.
+* **Brute force:** 5 wrong PINs lock the staff ID for 15 min; per-IP OTP/override rate limit; max 3 overrides per staff ID per 24 h.
+* **Patient-side control:** the emergency contact receives Approve / Deny on Telegram (the chat must be linked to that patient or the callback is refused). With no reply the request auto-grants after `BREAK_GLASS_DELAY_SEC` because the patient may be unconscious. Every outcome is audited and alerts the owner (critical).
+* **Accountability:** the Level 3 screen carries a watermark with the responder's name, ID and hospital; the audit chain records hospital, staff ID, designation and how access was granted (approved / auto-granted).
+* **Level 2 code delivery:** pushed to the linked Telegram chat, never returned to the browser (the on-screen code only exists in `OTP_MODE=mock` outside production, or with the explicit `ALLOW_DEMO_OTP=true`). The contact can block any outstanding code. Link codes are one-time, 10 min, stored hashed.
+* **Known gaps:** a responder can still talk a contact into reading out a code (the Approve/Deny flow does not have this weakness); the registry is simulated; the Telegram bot token is a high-value secret (rotate via @BotFather if leaked); auto-grant trades safety for availability by design.
+* **Proxy:** `TRUST_PROXY` must equal the number of reverse proxies (2 for Vercel rewrite + Render) or all clients share one IP.

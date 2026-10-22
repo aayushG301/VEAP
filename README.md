@@ -4,7 +4,7 @@
 
 > **Your Medical ID, Always Ready.** A QR-based emergency health-access platform: one scan gives first responders the critical facts, while the patient stays in control of everything else.
 
-**Status:** working full-stack hackathon prototype with the original VEAP dark-glass design. Backend (54 tests), frontend (30 tests), ML service (7 tests), an 18-check API end-to-end run and a 19-step **real-browser** test all pass. See [Honest status](#honest-status).
+**Status:** working full-stack hackathon prototype with the original VEAP dark-glass design. Backend (71 tests), frontend (37 tests), ML service (7 tests), an 18-check API end-to-end run and a 19-step **real-browser** test all pass. See [Honest status](#honest-status).
 
 | | |
 |---|---|
@@ -19,9 +19,9 @@ Every user gets a **signed, revocable QR code** that contains no health data. Sc
 
 | | Level 1 - Public | Level 2 - Verified | Level 3 - Restricted |
 |---|---|---|---|
-| Who | Anyone who scans | Responder with a code **sent to the patient's emergency contact** | Approved professional, or emergency override with a written reason |
-| Default fields | Name, blood group, allergies, emergency instructions, contacts | + conditions, medications, implants, doctor | + date of birth, insurance, history/notes |
-| Session | n/a | 5 min (+5 once) | 10 min (+5 once) |
+| Who | Anyone who scans | Responder with a code **sent privately to the patient's emergency contact** (Telegram) | **Authenticated hospital staff** (hospital ID + council ID + PIN, registry-checked) after the contact can deny, or an admin-approved professional account |
+| Default fields | Name, blood group, allergies, emergency instructions, contacts | + conditions, medications, prescriptions (dose, prescriber), allergy reactions, implants, doctor | + date of birth, surgeries, vaccinations, DNR / advance directives, implant MRI safety, specialists, preferred hospital, insurance + TPA, notes |
+| Session | n/a | 5 min (+5 once) | 10 min (+5 once), responder identity watermarked |
 | Owner alert | Info | Warning | Critical |
 
 The patient chooses, **per field**, which level can see it (with a live "what a stranger sees" preview), revokes the QR in one tap, and sees every access in a tamper-evident log.
@@ -50,12 +50,25 @@ npm run dev:frontend           # terminal 3                                   ->
 ### Demo logins (after `npm run seed`)
 `patient@veap.demo`, `admin@veap.demo`, `doctor@veap.demo` (pending: approve it in the admin console). Open the QR link the seed prints in a private window to play the responder.
 
-### Real SMS codes with Twilio
-By default (`OTP_MODE=mock`) the Level 2 code is shown on screen so demos work offline. For real SMS to the patient's emergency contact:
+### Level 2 codes with Telegram (free forever)
+`OTP_MODE=telegram` pushes the code to the emergency contact's Telegram chat, so it never appears on the responder's screen.
 
-1. Create a Twilio account; copy the **Account SID**, **Auth Token** and a Twilio **phone number**. (Trial accounts can only text numbers you have verified in Twilio.)
-2. In `.env` set `OTP_MODE=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` (e.g. `+15005550006`) and `DEFAULT_COUNTRY_CODE` (e.g. `+91`).
-3. Restart the backend. Codes are now texted to the patient's **first emergency contact** and never sent to the browser.
+1. In Telegram, talk to **@BotFather**, send `/newbot`, copy the token into `TELEGRAM_BOT_TOKEN` in `.env`, and set `OTP_MODE=telegram`.
+2. Start the backend, log in as the patient, open **Security → Emergency contact alerts → Connect emergency contact**, and open the link (or scan the QR) on the contact's phone. Tap **Start**.
+3. Scanning the QR now sends the code to that chat, with a **Block** button. Level 3 requests arrive there too, with **Approve / Deny**.
+
+The bot uses long polling, so there is no webhook or public URL to configure. Paid SMS via Twilio is still supported (`OTP_MODE=twilio`). **Hosting for free (Atlas + Render + Vercel): see [docs/DEPLOY.md](docs/DEPLOY.md).**
+
+### Level 3: simulated hospital registry
+`npm run seed` (or `DEMO_SEED=true` at boot) loads a **simulated** hospital and medical-council registry. Everything around it is real: argon2id-hashed PINs, lockout after repeated wrong PINs, suspended hospitals and revoked licences refused with one identical message, a daily override limit per staff ID, the contact's Approve/Deny with a timed auto-grant, a full audit trail, owner alerts, and the responder's identity watermarked on screen. A real deployment replaces the seeded collection with a lookup against the national medical register and hospital HR systems.
+
+| Hospital ID | Staff / council ID | PIN | Result |
+|---|---|---|---|
+| HSP-DEL-0001 | NMC-DL-48213 (Dr. Ananya Rao) | 482913 | accepted |
+| HSP-MRT-0002 | NMC-UP-30517 (Dr. Vikram Singh) | 305172 | accepted |
+| HSP-MRT-0002 | NMC-UP-77002 (Meena Joshi, nurse) | 770021 | accepted |
+| HSP-DEL-0001 | NMC-DL-99999 (revoked licence) | 999999 | refused |
+| HSP-LKO-0003 | NMC-UP-11111 (suspended hospital) | 111111 | refused |
 
 ## Features
 Full table with status: [docs/features.md](docs/features.md).
@@ -63,7 +76,7 @@ Full table with status: [docs/features.md](docs/features.md).
 * **Design:** the original VEAP look (dark glass, gradient shield logo, emoji icons, pulsing level pills, OTP boxes, session timer bar), mobile-first with a bottom tab bar on phones and a two-column layout on desktop; toasts, confirm modals, skeleton loaders, accessible labels, reduced-motion support.
 * **Auth:** Argon2id passwords, JWT + rotating refresh tokens with reuse detection, TOTP 2FA + recovery codes, lockout, device list with instant sign-out, roles + responder approval, account deletion.
 * **Privacy:** field-level AES-256-GCM, per-user keys, per-field visibility, no health data in the QR.
-* **Access control:** code sent to the patient's emergency contact, break-glass with mandatory reason, server-enforced expiry, owner alerts, report-misuse button.
+* **Access control:** code sent privately to the patient's emergency contact (Telegram), contact can block it; Level 3 needs registry-verified hospital staff + PIN + contact Approve/Deny (timed auto-grant), per-staff limits and lockout, identity watermark, server-enforced expiry, owner alerts, report-misuse button.
 * **Audit:** per-owner hash chain with verification and activity timeline.
 * **Abuse defense:** rate limits, signature checks, honeytokens, ML anomaly score with auto-lock.
 * **AI/ML:** emergency-type assistant (retrieval over vetted first-aid guides, patient-aware warnings, read-aloud), triage classifier, drug-allergy/drug-drug checker.
@@ -73,6 +86,7 @@ Full table with status: [docs/features.md](docs/features.md).
 ```
 Browser (React PWA) --/api--> Backend (Express + TS) --> MongoDB
                                    '--service key--> ML service (FastAPI: anomaly, triage, assistant, interactions)
+                                   '--(OTP_MODE=telegram)--> Telegram Bot API (free)
                                    '--(optional)---> Twilio (SMS)
 ```
 [docs/architecture.md](docs/architecture.md) · [docs/security.md](docs/security.md) (threat model and known gaps) · [docs/api.md](docs/api.md) · [docs/ml-models.md](docs/ml-models.md) · [docs/demo-script.md](docs/demo-script.md)
@@ -108,7 +122,8 @@ Backend tests create and delete throwaway databases on your MongoDB. Details: [d
 **Built and tested:** everything listed under Features.
 **Not built (roadmap):** passkeys/WebAuthn, Google OAuth, document vault + OCR, multilingual UI, wallet passes, Redis/BullMQ, generative LLM answers (the assistant is retrieval-only on purpose).
 **Caveats:**
-* Twilio delivery is covered by tests against a *mocked* Twilio API, not a live account.
+* Telegram and Twilio delivery are covered by tests against *mocked* APIs (api.telegram.org / api.twilio.com), not live accounts. Try Telegram once with your own bot token.
+* The Level 3 hospital/council registry is **simulated** (seeded data). Staff IDs are not verified against a real medical register.
 * Backend tests and the API/browser end-to-end runs were executed in the build sandbox against FerretDB (a MongoDB-compatible server), not `mongod` itself. Please run `npm test` once against your own MongoDB or Atlas.
 * The triage model is trained on synthetic data and is not clinically validated; the interaction table is small and illustrative.
 * Docker files were not executed in the build sandbox. No third-party security audit; not HIPAA/GDPR certified and not for real patient data without review.

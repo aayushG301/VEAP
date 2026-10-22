@@ -1,0 +1,29 @@
+# Render Blueprint: free backend for the VEAP demo. Frontend goes on Vercel (see docs/DEPLOY.md). No ML service needed.
+services:
+  - type: web
+    name: veap-backend
+    runtime: node
+    plan: free
+    region: singapore            # pick the region closest to your judges / MongoDB Atlas cluster
+    buildCommand: npm install --workspace apps/backend
+    startCommand: npm start --workspace apps/backend
+    healthCheckPath: /health
+    envVars:
+      - { key: NODE_VERSION, value: 22 }
+      - { key: NODE_ENV, value: production }
+      - { key: MONGO_DB, value: veap }
+      - { key: TRUST_PROXY, value: "2" }              # Vercel rewrite + Render = 2 proxies
+      - { key: OTP_MODE, value: telegram }
+      - { key: DEMO_SEED, value: "true" }             # creates the demo patient, QR and simulated hospital registry at boot
+      - { key: BREAK_GLASS_DELAY_SEC, value: "45" }
+      - { key: DEFAULT_COUNTRY_CODE, value: "+91" }
+      - { key: MONGO_URI, sync: false }               # Atlas connection string
+      - { key: PUBLIC_URL, sync: false }              # https://<your-app>.vercel.app
+      - { key: CORS_ORIGINS, sync: false }            # same value as PUBLIC_URL
+      - { key: TELEGRAM_BOT_TOKEN, sync: false }      # from @BotFather
+      - { key: DEMO_PASSWORD, sync: false }           # password for patient@veap.demo (choose your own)
+      - { key: JWT_ACCESS_SECRET, generateValue: true }
+      - { key: ACCESS_SESSION_SECRET, generateValue: true }
+      - { key: QR_SIGNING_SECRET, generateValue: true }
+      - { key: PASSWORD_PEPPER, generateValue: true }
+      - { key: DATA_ENCRYPTION_KEY, generateValue: true }   # 256-bit base64 = exactly the 32 bytes the app needs

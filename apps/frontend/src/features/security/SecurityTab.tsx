@@ -5,6 +5,7 @@ import { useAuth } from "../../lib/auth";
 import { deviceName, timeAgo } from "../../lib/util";
 import { Modal } from "../../components/Modal";
 import { useToast } from "../../components/Toast";
+import TelegramCard from "./TelegramCard";
 
 export default function SecurityTab() {
   const { user, reload, logout } = useAuth();
@@ -23,6 +24,7 @@ export default function SecurityTab() {
   return (
     <div className="split">
       <div className="stack">
+        {user?.role === "patient" && <TelegramCard />}
         <div className="card">
           <div className="card__title">🛡️ Two-factor authentication<span className="spacer" /><span className={`badge ${user?.mfaEnabled ? "badge--safe" : "badge--warn"}`}>{user?.mfaEnabled ? "On" : "Off"}</span></div>
           <p className="text-sm mb-md">Adds a 6-digit code from an authenticator app (Google Authenticator, Authy, 1Password) every time you log in.</p>

@@ -181,15 +181,25 @@ await step("wrong OTP shows remaining attempts (fresh code, wrong digits)", asyn
   await ctx.close();
 }, null);
 
-await step("Level 3: emergency override needs a real reason, then unlocks everything", async () => {
+await step("Level 3: hospital staff must sign in with registry credentials, a wrong PIN is refused, the right one unlocks everything", async () => {
   await clickText(s, "button", "Emergency override");
-  await s.waitForSelector("#reason");
-  must(await s.$eval(".modal__actions .btn--danger", (b) => b.disabled), "override should be disabled with no reason");
-  await s.type("#reason", "Patient collapsed and is unresponsive at the station");
-  await shot(s, "08-override-modal");
-  await clickText(s, ".modal__actions button", "Override");
-  await waitText(s, "SECRET-NOTES-TIER3");
+  await s.waitForSelector("#hid");
+  must(await s.$eval(".modal__actions .btn--danger", (b) => b.disabled), "submit should be disabled with an empty form");
+  const fill = async (pin) => {
+    for (const sel of ["#hid", "#sid", "#pin", "#reason"]) await s.$eval(sel, (e) => { e.value = ""; });
+    await s.type("#hid", "HSP-DEL-0001"); await s.type("#sid", "NMC-DL-48213"); await s.type("#pin", pin); await s.type("#reason", "Patient collapsed and is unresponsive at the station");
+  };
+  await fill("000000");
+  await shot(s, "08-override-form");
+  await clickText(s, ".modal__actions button", "Verify & request access");
+  await waitText(s, "not valid");
+  await fill("482913");
+  await clickText(s, ".modal__actions button", "Verify & request access");
+  await waitText(s, "Identity verified");
+  await shot(s, "08b-override-waiting");
+  await waitText(s, "SECRET-NOTES-TIER3");   // needs BREAK_GLASS_DELAY_SEC small (e.g. 2) on the running backend
   await waitText(s, "Level 3 is unlocked");
+  await waitText(s, "Accessed by");
 }, s);
 
 await step("report misuse from the scan page", async () => {

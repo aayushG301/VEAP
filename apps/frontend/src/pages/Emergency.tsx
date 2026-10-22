@@ -10,6 +10,8 @@ import { Modal } from "../components/Modal";
 import { useToast } from "../components/Toast";
 import AssistantPanel from "../features/emergency/AssistantPanel";
 import VerifyPanel from "../features/emergency/VerifyPanel";
+import OverridePanel from "../features/emergency/OverridePanel";
+import { Watermark } from "../components/Watermark";
 import { Contacts, RecordList, isEmpty, tel } from "../features/emergency/RecordView";
 
 const getGeo = (): Promise<string> => new Promise((res) => {
@@ -28,7 +30,7 @@ export default function Emergency() {
   const [retry, setRetry] = useState(0); const [reload, setReload] = useState(0);
   const [session, setSession] = useState<Session | null>(null); const [record, setRecord] = useState<any>(null);
   const [expired, setExpired] = useState(false);
-  const [overrideOpen, setOverrideOpen] = useState(false); const [reason, setReason] = useState("");
+  const [overrideOpen, setOverrideOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false); const [reportText, setReportText] = useState("");
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
 
@@ -64,11 +66,7 @@ export default function Emergency() {
   const grant = (g: { sessionToken: string; tier: number; expiresAt: number }) => { setExpired(false); setErr(""); setSession({ token: g.sessionToken, tier: g.tier, startedAt: Date.now(), expiresAt: g.expiresAt }); };
   const endSession = async () => { if (!session) return; try { await api("/access/end", { auth: false, session: session.token, body: {} }); } catch { /* already gone */ } setSession(null); setRecord(null); toast("Session ended", "info"); };
   const extend = async () => { if (!session) return; try { const r = await api("/access/extend", { auth: false, session: session.token, body: {} }); setSession({ ...session, expiresAt: r.expiresAt }); toast("Session extended by 5 minutes", "success"); } catch (e: any) { toast(e.message, "warning"); } };
-  const override = async () => {
-    if (!session) return; setBusy(true);
-    try { grant(await api("/access/break-glass", { auth: false, session: session.token, body: { token, reason } })); setOverrideOpen(false); setReason(""); toast("Level 3 unlocked. This was logged and the patient was alerted.", "warning"); }
-    catch (e: any) { toast(e.message, "error"); } finally { setBusy(false); }
-  };
+  const overrideGranted = (g: { sessionToken: string; tier: number; expiresAt: number }) => { setOverrideOpen(false); grant(g); toast("Level 3 unlocked. Your identity was logged and the patient was alerted.", "warning"); };
   const professional = async () => { setBusy(true); try { grant(await api("/access/credential", { body: { token } })); toast("Verified professional access granted", "success"); } catch (e: any) { toast(e.message, "error"); } finally { setBusy(false); } };
   const report = async () => {
     setBusy(true);
@@ -117,6 +115,7 @@ export default function Emergency() {
 
   return (
     <div className="container container--mid">
+      {tier === 3 && record?.responder && <Watermark text={`${record.responder.name} · ${record.responder.staffId} · ${record.responder.hospitalName || "VEAP"} · ${new Date().toLocaleDateString()}`} />}
       {session && <SessionBar startedAt={session.startedAt} expiresAt={session.expiresAt} onExpire={() => { setSession(null); setRecord(null); setExpired(true); }} />}
       {cachedAt && <div className="card card--warning card--tight mt-md text-sm" role="status">📡 Offline: showing the information saved on {new Date(cachedAt).toLocaleString()}.</div>}
       {expired && (
@@ -185,23 +184,24 @@ export default function Emergency() {
         {tier < 3 && (
           <div className="card card--danger">
             <h4 className="card__title">🔴 Emergency override</h4>
-            <p className="text-sm mb-md">Only use in a genuine emergency. This unlocks all data, is permanently logged, and alerts the patient immediately.</p>
+            <p className="text-sm mb-md">For hospital staff in a genuine emergency. You sign in with your hospital and council ID, the patient's emergency contact can deny the request, and everything is permanently logged under your name.</p>
             {!session && <p className="text-xs text-muted mb-sm">Verify at Level 2 first so the override is traceable to your phone.</p>}
-            <button className="btn btn--danger btn--full" disabled={!session} onClick={() => setOverrideOpen(true)}>⚡ Emergency override: unlock all data</button>
+            <button className="btn btn--danger btn--full" disabled={!session} onClick={() => setOverrideOpen(true)}>⚡ Emergency override: hospital staff sign-in</button>
             {isPro && <button className="btn btn--primary btn--full mt-sm" disabled={busy} onClick={professional}>🩺 Verified professional access</button>}
           </div>
         )}
-        {tier === 3 && <div className="card card--success card--tight text-sm">✅ Level 3 is unlocked. All information is shown above.</div>}
+        {tier === 3 && (
+          <div className="card card--success card--tight text-sm" role="status">
+            ✅ Level 3 is unlocked. All information is shown above.
+            {record?.responder && <div className="text-xs mt-sm" style={{ color: "var(--text-primary)" }}>🔒 Accessed by <b>{record.responder.name}</b>, {record.responder.designation}{record.responder.hospitalName && `, ${record.responder.hospitalName}`} · ID {record.responder.staffId}. Logged and the patient was notified.</div>}
+            {record?.profileUpdatedAt && <div className="text-xs text-muted mt-sm">Profile last updated {new Date(record.profileUpdatedAt).toLocaleString()}</div>}
+          </div>)}
       </div>
 
       <div className="text-center mt-xl"><button className="btn btn--ghost btn--sm" onClick={() => setReportOpen(true)}>🚩 Report misuse</button></div>
 
-      <Modal open={overrideOpen} title="⚠️ Emergency override" danger onClose={() => setOverrideOpen(false)}>
-        <p className="modal__text">This unlocks <b>all</b> medical data. The action is logged with your reason and the patient is notified. Only proceed in a genuine emergency.</p>
-        <div className="form-group"><label className="form-label" htmlFor="reason">Reason (required, 15+ characters)</label>
-          <textarea id="reason" className="form-textarea" maxLength={500} placeholder="e.g. Patient collapsed and is unresponsive at the bus station" value={reason} onChange={(e) => setReason(e.target.value)} />
-          <div className="form-hint">{reason.trim().length}/15 minimum</div></div>
-        <div className="modal__actions"><button className="btn btn--ghost" onClick={() => setOverrideOpen(false)}>Cancel</button><button className="btn btn--danger" disabled={busy || reason.trim().length < 15} onClick={override}>{busy ? <span className="spinner" /> : "Override"}</button></div>
+      <Modal open={overrideOpen && !!session && tier < 3} title="⚠️ Emergency override: hospital staff" danger onClose={() => setOverrideOpen(false)}>
+        {session && <OverridePanel token={token} session={session.token} demo={t1?.demo ?? null} onGranted={overrideGranted} onCancel={() => setOverrideOpen(false)} onSessionLost={() => { setOverrideOpen(false); setSession(null); setRecord(null); setExpired(true); }} />}
       </Modal>
       <Modal open={reportOpen} title="🚩 Report misuse" onClose={() => setReportOpen(false)}>
         <p className="modal__text">Tell the owner something looks wrong with this QR code or how it is being used.</p>

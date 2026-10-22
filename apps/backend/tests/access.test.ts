@@ -112,22 +112,7 @@ describe("Tier 2: OTP", () => {
   });
 });
 
-describe("Tier 3: break-glass & credentials", () => {
-  it("break-glass needs a verified session and a real reason, then opens everything and alerts the owner", async () => {
-    const p = await patientWithQr();
-    expect((await request(app).post(api("/access/break-glass")).send({ token: p.qrToken, reason: "Patient collapsed, unconscious at station" })).status).toBe(401);
-    const t = await tier2(p.qrToken);
-    expect((await request(app).post(api("/access/break-glass")).set("X-Access-Session", t.session).send({ token: p.qrToken, reason: "short" })).status).toBe(400);
-    const bg = await request(app).post(api("/access/break-glass")).set("X-Access-Session", t.session).send({ token: p.qrToken, reason: "Patient collapsed, unconscious at station" });
-    expect(bg.status).toBe(201); expect(bg.body.tier).toBe(3);
-    const rec = await request(app).get(api(`/emergency/${p.qrToken}/record`)).set("X-Access-Session", bg.body.sessionToken);
-    expect(rec.body.data.notes).toBe("SECRET-NOTES-TIER3"); expect(rec.body.data.insurance).toBe("POLICY-12345");
-    const n = await request(app).get(api("/notifications")).set(p.auth);
-    expect(n.body.notifications.some((x: any) => x.severity === "critical" && /BREAK-GLASS/.test(x.title))).toBe(true);
-    const a = await request(app).get(api("/audit")).set(p.auth);
-    const e = a.body.entries.find((x: any) => x.action === "break_glass");
-    expect(e.reason).toMatch(/collapsed/); expect(e.tier).toBe(3);
-  });
+describe("Tier 3: professional credentials", () => {
   it("licensed professionals get Tier 3 only after admin approval", async () => {
     const p = await patientWithQr();
     const agent = request.agent(app);

@@ -42,9 +42,15 @@ ok(g.s === 200 && /heart attack/i.test(g.j.title) && g.j.warnings.some((w) => /N
 const tri = await call("/assistant/triage", { body: { symptoms: ["chest_pain", "breathing_difficulty"], age: 64, spo2: 88 } });
 ok(["HIGH", "CRITICAL"].includes(tri.j.level), `triage ${tri.j.level} (${tri.j.source})`);
 
-const bg = await call("/access/break-glass", { session: v.j.sessionToken, body: { token, reason: "Collapsed at bus stop, unresponsive" } });
-const full = await call(`/emergency/${token}/record`, { session: bg.j.sessionToken });
-ok(bg.s === 201 && full.j.data.notes === "TIER3-ONLY", "break-glass opens Tier 3");
+// Level 3: hospital staff sign-in against the (simulated) registry. Needs `npm run seed` and BREAK_GLASS_DELAY_SEC small (e.g. 2).
+const bad = await call("/access/break-glass", { session: v.j.sessionToken, body: { token, hospitalId: "HSP-DEL-0001", staffId: "NMC-DL-48213", pin: "000000", reason: "Collapsed at bus stop, unresponsive" } });
+ok(bad.s === 401 && bad.j.error === "verification_failed", "override refused for a wrong staff PIN");
+const bg = await call("/access/break-glass", { session: v.j.sessionToken, body: { token, hospitalId: "HSP-DEL-0001", staffId: "NMC-DL-48213", pin: "482913", reason: "Collapsed at bus stop, unresponsive" } });
+ok(bg.s === 202 && bg.j.responder?.name === "Dr. Ananya Rao", "override accepted for a registered doctor (pending contact decision)");
+let grant = null;
+for (let i = 0; i < 30 && !grant; i++) { const p = await call(`/access/break-glass/${bg.j.requestId}`, { session: v.j.sessionToken }); if (p.j.sessionToken) grant = p.j; else await new Promise((r) => setTimeout(r, 1000)); }
+const full = await call(`/emergency/${token}/record`, { session: grant?.sessionToken });
+ok(!!grant && full.j.data.notes === "TIER3-ONLY" && full.j.responder?.staffId === "NMC-DL-48213", "break-glass opens Tier 3 with the responder identity attached");
 const notes = await call("/notifications", { token: T });
 ok(notes.j.notifications.some((n) => n.severity === "critical"), "owner received critical break-glass alert");
 const ver = await call("/audit/verify", { token: T });

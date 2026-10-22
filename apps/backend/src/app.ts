@@ -14,11 +14,12 @@ import { auditRouter } from "./modules/audit/audit.routes";
 import { notifyRouter } from "./modules/notifications/notify.routes";
 import { assistantRouter } from "./modules/assistant/assistant.routes";
 import { adminRouter } from "./modules/admin/admin.routes";
+import { telegramRouter } from "./modules/telegram/telegram.routes";
 
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
-  if (env.isProd) app.set("trust proxy", 1);
+  if (env.trustProxy > 0) app.set("trust proxy", env.trustProxy);
   app.use(helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["\x27none\x27"], frameAncestors: ["\x27none\x27"] } }, crossOriginResourcePolicy: { policy: "same-site" } }));
   app.use(cors({
     origin: (origin, cb) => (!origin || env.corsOrigins.includes(origin) ? cb(null, true) : cb(new Error("CORS blocked"))),
@@ -41,6 +42,7 @@ export function createApp() {
   v1.use("/notifications", notifyRouter);
   v1.use("/assistant", assistantRouter);
   v1.use("/admin", adminRouter);
+  v1.use("/telegram", telegramRouter);
   app.use("/api/v1", v1);
 
   app.use(notFound);

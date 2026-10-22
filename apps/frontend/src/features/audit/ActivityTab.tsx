@@ -11,6 +11,8 @@ const EVENT: Record<string, [string, string]> = {
   profile_updated: ["Profile updated", "green"], visibility_updated: ["Visibility settings changed", "green"], login: ["Signed in", ""], login_failed: ["Failed sign-in attempt", "red"], account_locked: ["Account temporarily locked", "red"],
   mfa_enabled: ["Two-factor enabled", "green"], mfa_disabled: ["Two-factor disabled", "amber"], session_revoked: ["A device was signed out", "amber"], refresh_reuse_detected: ["Stolen session blocked", "red"],
   assistant_used: ["AI assistant used", "blue"], misuse_reported: ["Someone reported misuse", "amber"], otp_delivery_failed: ["Code SMS could not be sent", "red"], recovery_code_used: ["Recovery code used", "amber"],
+  break_glass_requested: ["Emergency override requested (Level 3)", "red"], break_glass_approved: ["Override approved by your contact", "amber"], break_glass_denied: ["Override denied by your contact", "green"],
+  break_glass_auto_granted: ["Override auto-granted (no reply from contact)", "red"], otp_denied_by_contact: ["Your contact blocked a verification code", "green"], telegram_linked: ["Emergency contact connected on Telegram", "green"], telegram_unlinked: ["Telegram contact removed", "amber"],
 };
 
 export default function ActivityTab({ onRead }: { onRead?: () => void }) {

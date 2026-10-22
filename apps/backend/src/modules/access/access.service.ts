@@ -5,6 +5,7 @@ import { randomId } from "../../security/crypto";
 import { parseQrToken, signAccessSessionToken, verifyAccessSessionToken } from "../../security/tokens";
 import { HttpError, clientIp, userAgent } from "../../utils/http";
 
+export interface Responder { staffId: string; name: string; designation: string; hospitalId: string | null; hospitalName: string }
 export interface QrRow { id: string; userId: string; status: string; riskScore: number }
 
 export async function recordSecurityEvent(kind: string, req: Request, detail = "") {
@@ -25,15 +26,15 @@ export async function resolveToken(tokenStr: string, req: Request, opts: { allow
   return { id: row._id, userId: row.userId, status: row.status, riskScore: row.riskScore };
 }
 
-export async function createSession(p: { token: QrRow; tier: 2 | 3; via: string; responderId?: string; phoneLast4?: string; reason?: string; ip: string }) {
+export async function createSession(p: { token: QrRow; tier: 2 | 3; via: string; responderId?: string; phoneLast4?: string; reason?: string; responder?: Responder; ip: string }) {
   const id = randomId();
   const ttl = p.tier === 2 ? env.tier2TtlSec : env.tier3TtlSec;
   const expiresAt = Date.now() + ttl * 1000;
-  await col.accessSessions.insertOne({ _id: id, tokenId: p.token.id, userId: p.token.userId, tier: p.tier, grantedVia: p.via, responderId: p.responderId ?? null, phoneLast4: p.phoneLast4 ?? null, reason: p.reason ?? null, extended: false, revoked: false, expiresAt, ip: p.ip, createdAt: Date.now() });
+  await col.accessSessions.insertOne({ _id: id, tokenId: p.token.id, userId: p.token.userId, tier: p.tier, grantedVia: p.via, responderId: p.responderId ?? null, phoneLast4: p.phoneLast4 ?? null, reason: p.reason ?? null, responder: p.responder ?? null, extended: false, revoked: false, expiresAt, ip: p.ip, createdAt: Date.now() });
   return { id, expiresAt, sessionToken: signAccessSessionToken(id, p.token.id, p.tier, ttl + 600) };
 }
 
-export interface SessionRow { id: string; tokenId: string; userId: string; tier: number; grantedVia: string; phoneLast4: string | null; responderId: string | null; extended: boolean; expiresAt: number }
+export interface SessionRow { id: string; tokenId: string; userId: string; tier: number; grantedVia: string; phoneLast4: string | null; responderId: string | null; responder: Responder | null; extended: boolean; expiresAt: number }
 
 /** Server-side enforcement of expiry/revocation. The client clock is never trusted. */
 export async function requireSession(req: Request, minTier = 2, tokenId?: string): Promise<SessionRow> {
@@ -47,7 +48,7 @@ export async function requireSession(req: Request, minTier = 2, tokenId?: string
   if (s.tier < minTier) throw new HttpError(403, "insufficient_tier", `Tier ${minTier} access required`);
   const t = await col.qrTokens.findOne({ _id: s.tokenId });
   if (!t || t.status === "revoked") throw new HttpError(401, "session_invalid", "Profile access was revoked");
-  return { id: s._id, tokenId: s.tokenId, userId: s.userId, tier: s.tier, grantedVia: s.grantedVia, phoneLast4: s.phoneLast4, responderId: s.responderId, extended: !!s.extended, expiresAt: s.expiresAt };
+  return { id: s._id, tokenId: s.tokenId, userId: s.userId, tier: s.tier, grantedVia: s.grantedVia, phoneLast4: s.phoneLast4, responderId: s.responderId, responder: s.responder ?? null, extended: !!s.extended, expiresAt: s.expiresAt };
 }
 
 export const parseGeo = (lat: unknown, lng: unknown): string | null => {

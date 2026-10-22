@@ -42,7 +42,21 @@ export const env = {
   qrSigningSecret: secret("QR_SIGNING_SECRET", "dev-qr-signing-secret-change-03"),
   passwordPepper: secret("PASSWORD_PEPPER", "dev-pepper-change-me-0004"),
   masterKey,
-  otpMode: process.env.OTP_MODE || "mock",
+  otpMode: (process.env.OTP_MODE || "mock") as "mock" | "twilio" | "telegram",
+  // Demo-only escape hatch: show the Level 2 code on screen even in production (OTP_MODE=mock). Never enable for real use.
+  demoOtp: process.env.ALLOW_DEMO_OTP === "true",
+  // Create the demo patient, QR and the simulated hospital registry at boot (works in production too, for hosted hackathon demos).
+  demoSeed: process.env.DEMO_SEED === "true",
+  demoPassword: process.env.DEMO_PASSWORD || "DemoPassw0rd!",
+  // Number of reverse proxies in front of the backend. Render alone = 1. Vercel rewrite -> Render = 2. Local = 0.
+  trustProxy: process.env.TRUST_PROXY !== undefined ? Number(process.env.TRUST_PROXY) : (isProd ? 1 : 0),
+  telegram: { botToken: process.env.TELEGRAM_BOT_TOKEN || "" },
+  breakGlass: {
+    delaySec: num("BREAK_GLASS_DELAY_SEC", 60),        // how long the contact has to deny before access is auto-granted
+    maxPerStaffPerDay: num("BREAK_GLASS_MAX_PER_DAY", 3),
+    pinMaxFailures: num("STAFF_PIN_MAX_FAILURES", 5),
+    lockMinutes: num("STAFF_LOCK_MINUTES", 15),
+  },
   twilio: { sid: process.env.TWILIO_ACCOUNT_SID || "", token: process.env.TWILIO_AUTH_TOKEN || "", from: process.env.TWILIO_PHONE_NUMBER || "" },
   defaultCountryCode: process.env.DEFAULT_COUNTRY_CODE || "+91",
   mlServiceUrl: process.env.ML_SERVICE_URL ?? (isProd ? "" : "http://localhost:8001"),
@@ -61,6 +75,8 @@ export const env = {
   adminPassword: process.env.ADMIN_PASSWORD || "",
 };
 
+if (!["mock", "twilio", "telegram"].includes(env.otpMode)) throw new Error("OTP_MODE must be mock, twilio or telegram");
+if (env.otpMode === "telegram" && !env.telegram.botToken) throw new Error("OTP_MODE=telegram requires TELEGRAM_BOT_TOKEN (create a bot with @BotFather)");
 if (env.otpMode === "twilio" && !(env.twilio.sid && env.twilio.token && env.twilio.from)) {
   throw new Error("OTP_MODE=twilio requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER");
 }
