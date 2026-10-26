@@ -78,11 +78,13 @@ describe("Level 3 record rendering", () => {
     render(<RecordList data={{ advanceDirectives: { dnr: "unknown", transfusion: "unknown" }, fullName: "A" }} />);
     expect(screen.queryByText("Advance directives")).toBeNull();
   });
-  it("watermarks the screen with the responder identity", () => {
-    render(<Watermark text="Dr. Ananya Rao · NMC-DL-48213" />);
+  it("watermarks the screen with the responder's name, ID, role and hospital", () => {
+    render(<Watermark lines={["Dr. Ananya Rao · ID NMC-DL-48213", "Emergency Medicine Consultant · AIIMS Trauma Centre", "VEAP LEVEL 3 · 27 Oct 2026"]} />);
     const el = screen.getByTestId("watermark");
-    expect(decodeURIComponent(el.style.backgroundImage)).toContain("Dr. Ananya Rao");
-    expect(el.style.pointerEvents).toBe("none");
+    expect(el.textContent).toContain("Dr. Ananya Rao");
+    expect(el.textContent).toContain("NMC-DL-48213");
+    expect(el.textContent).toContain("AIIMS Trauma Centre");
+    expect(el.getAttribute("class")).toContain("watermark");
   });
 });
 

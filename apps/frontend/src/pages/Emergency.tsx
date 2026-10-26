@@ -115,7 +115,11 @@ export default function Emergency() {
 
   return (
     <div className="container container--mid">
-      {tier === 3 && record?.responder && <Watermark text={`${record.responder.name} · ${record.responder.staffId} · ${record.responder.hospitalName || "VEAP"} · ${new Date().toLocaleDateString()}`} />}
+      {tier === 3 && record?.responder && <Watermark lines={[
+        `${record.responder.name} · ID ${record.responder.staffId}`,
+        [record.responder.designation, record.responder.hospitalName].filter(Boolean).join(" · "),
+        `VEAP LEVEL 3 · ${new Date().toLocaleString()}`,
+      ]} />}
       {session && <SessionBar startedAt={session.startedAt} expiresAt={session.expiresAt} onExpire={() => { setSession(null); setRecord(null); setExpired(true); }} />}
       {cachedAt && <div className="card card--warning card--tight mt-md text-sm" role="status">📡 Offline: showing the information saved on {new Date(cachedAt).toLocaleString()}.</div>}
       {expired && (
