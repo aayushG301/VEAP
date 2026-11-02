@@ -13,6 +13,7 @@ import VerifyPanel from "../features/emergency/VerifyPanel";
 import OverridePanel from "../features/emergency/OverridePanel";
 import { Watermark } from "../components/Watermark";
 import { Contacts, RecordList, isEmpty, tel } from "../features/emergency/RecordView";
+import { useI18n, LanguagePicker } from "../lib/i18n";
 
 const getGeo = (): Promise<string> => new Promise((res) => {
   if (!navigator.geolocation) return res("");
@@ -25,6 +26,7 @@ export default function Emergency() {
   const { token = "" } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [state, setState] = useState<State>("loading");
   const [t1, setT1] = useState<any>(null); const [cachedAt, setCachedAt] = useState<number | null>(null);
   const [retry, setRetry] = useState(0); const [reload, setReload] = useState(0);
@@ -64,40 +66,44 @@ export default function Emergency() {
   useEffect(() => { if (session) fetchRecord(session.token); }, [session?.token]);
 
   const grant = (g: { sessionToken: string; tier: number; expiresAt: number }) => { setExpired(false); setErr(""); setSession({ token: g.sessionToken, tier: g.tier, startedAt: Date.now(), expiresAt: g.expiresAt }); };
-  const endSession = async () => { if (!session) return; try { await api("/access/end", { auth: false, session: session.token, body: {} }); } catch { /* already gone */ } setSession(null); setRecord(null); toast("Session ended", "info"); };
-  const extend = async () => { if (!session) return; try { const r = await api("/access/extend", { auth: false, session: session.token, body: {} }); setSession({ ...session, expiresAt: r.expiresAt }); toast("Session extended by 5 minutes", "success"); } catch (e: any) { toast(e.message, "warning"); } };
-  const overrideGranted = (g: { sessionToken: string; tier: number; expiresAt: number }) => { setOverrideOpen(false); grant(g); toast("Level 3 unlocked. Your identity was logged and the patient was alerted.", "warning"); };
-  const professional = async () => { setBusy(true); try { grant(await api("/access/credential", { body: { token } })); toast("Verified professional access granted", "success"); } catch (e: any) { toast(e.message, "error"); } finally { setBusy(false); } };
+  const endSession = async () => { if (!session) return; try { await api("/access/end", { auth: false, session: session.token, body: {} }); } catch { /* already gone */ } setSession(null); setRecord(null); toast(t("emergency.sessionEnded"), "info"); };
+  const extend = async () => { if (!session) return; try { const r = await api("/access/extend", { auth: false, session: session.token, body: {} }); setSession({ ...session, expiresAt: r.expiresAt }); toast(t("emergency.extendedSuccess"), "success"); } catch (e: any) { toast(e.message, "warning"); } };
+  const overrideGranted = (g: { sessionToken: string; tier: number; expiresAt: number }) => { setOverrideOpen(false); grant(g); toast(t("emergency.overrideUnlocked"), "warning"); };
+  const professional = async () => { setBusy(true); try { grant(await api("/access/credential", { body: { token } })); toast(t("emergency.proGranted"), "success"); } catch (e: any) { toast(e.message, "error"); } finally { setBusy(false); } };
   const report = async () => {
     setBusy(true);
-    try { await api(`/emergency/${token}/report`, { auth: false, body: reportText ? { reason: reportText } : {} }); setReportOpen(false); setReportText(""); toast("Thank you. The owner has been notified.", "success"); }
+    try { await api(`/emergency/${token}/report`, { auth: false, body: reportText ? { reason: reportText } : {} }); setReportOpen(false); setReportText(""); toast(t("emergency.misuseSuccess"), "success"); }
     catch (e: any) { toast(e.message, "error"); } finally { setBusy(false); }
   };
 
   /* ---------- non-happy-path screens ---------- */
-  if (state === "loading") return <div className="container"><div className="center-state"><Logo size={72} className="hero__icon" /><p className="mt-md">Loading emergency profile...</p></div></div>;
+  if (state === "loading") return <div className="container"><div className="center-state"><Logo size={72} className="hero__icon" /><p className="mt-md">{t("emergency.loading")}</p></div></div>;
   if (state !== "ok") {
     const m: Record<string, [string, string, string]> = {
-      locked: ["🔒", "Temporarily locked", "This QR code was locked because of unusual scanning activity. In an emergency, call your local emergency number now."],
-      revoked: ["⛔", "QR code revoked", "The owner revoked this QR code. If this is an emergency, call your local emergency number."],
-      notfound: ["⚠️", "Invalid QR code", "This emergency profile could not be found. The QR code may be invalid or damaged."],
-      limited: ["🚫", "Too many requests", `Suspicious activity was detected from this connection. Retrying automatically in ${retry}s.`],
-      error: ["📡", "Can't load the profile", "No connection and no saved copy. If this is an emergency, call your local emergency number."],
+      locked: ["🔒", t("state.locked.title"), t("state.locked.desc")],
+      revoked: ["⛔", t("state.revoked.title"), t("state.revoked.desc")],
+      notfound: ["⚠️", t("state.notfound.title"), t("state.notfound.desc")],
+      limited: ["🚫", t("state.limited.title"), t("state.limited.desc", { retry })],
+      error: ["📡", t("state.error.title"), t("state.error.desc")],
     };
     const [icon, title, text] = m[state];
     return (
       <div className="container">
+        <div className="row row--between mt-md mb-md">
+          <div />
+          <LanguagePicker />
+        </div>
         <div className="error-state" role="alert">
           <div className="error-state__icon">{icon}</div><h2 className="error-state__title">{title}</h2><p>{text}</p>
-          <div className="row" style={{ justifyContent: "center" }}><a className="btn btn--danger btn--lg" href="tel:112">📞 Call 112</a><a className="btn btn--danger btn--lg" href="tel:108">📞 Call 108</a></div>
-          {state === "limited" && <button className="btn btn--ghost btn--sm mt-lg" onClick={() => setReportOpen(true)}>🚩 Report misuse</button>}
-          {(state === "error" || state === "limited") && <button className="btn btn--ghost btn--sm mt-lg" style={{ marginLeft: 8 }} onClick={() => setReload((n) => n + 1)}>Try again</button>}
-          <p className="mt-lg"><Link to="/">← Go to VEAP home</Link></p>
+          <div className="row" style={{ justifyContent: "center" }}><a className="btn btn--danger btn--lg" href="tel:112">{t("emergency.call112")}</a><a className="btn btn--danger btn--lg" href="tel:108">{t("emergency.call108")}</a></div>
+          {state === "limited" && <button className="btn btn--ghost btn--sm mt-lg" onClick={() => setReportOpen(true)}>{t("emergency.reportMisuse")}</button>}
+          {(state === "error" || state === "limited") && <button className="btn btn--ghost btn--sm mt-lg" style={{ marginLeft: 8 }} onClick={() => setReload((n) => n + 1)}>{t("state.tryAgain")}</button>}
+          <p className="mt-lg"><Link to="/">{t("state.goHome")}</Link></p>
         </div>
-        <Modal open={reportOpen} title="🚩 Report misuse" onClose={() => setReportOpen(false)}>
-          <p className="modal__text">Tell the owner something looks wrong with this QR code.</p>
-          <textarea className="form-textarea" aria-label="What happened?" maxLength={300} placeholder="What happened? (optional)" value={reportText} onChange={(e) => setReportText(e.target.value)} />
-          <div className="modal__actions"><button className="btn btn--ghost" onClick={() => setReportOpen(false)}>Cancel</button><button className="btn btn--danger" disabled={busy} onClick={report}>Send report</button></div>
+        <Modal open={reportOpen} title={t("emergency.misuseTitle")} onClose={() => setReportOpen(false)}>
+          <p className="modal__text">{t("emergency.misuseDesc")}</p>
+          <textarea className="form-textarea" aria-label="What happened?" maxLength={300} placeholder={t("emergency.misusePlaceholder")} value={reportText} onChange={(e) => setReportText(e.target.value)} />
+          <div className="modal__actions"><button className="btn btn--ghost" onClick={() => setReportOpen(false)}>{t("emergency.misuseCancel")}</button><button className="btn btn--danger" disabled={busy} onClick={report}>{t("emergency.misuseSend")}</button></div>
         </Modal>
       </div>
     );
@@ -115,41 +121,45 @@ export default function Emergency() {
 
   return (
     <div className="container container--mid">
+      <div className="row row--between mt-sm mb-md">
+        <div />
+        <LanguagePicker />
+      </div>
       {tier === 3 && record?.responder && <Watermark lines={[
         `${record.responder.name} · ID ${record.responder.staffId}`,
         [record.responder.designation, record.responder.hospitalName].filter(Boolean).join(" · "),
         `VEAP LEVEL 3 · ${new Date().toLocaleString()}`,
       ]} />}
       {session && <SessionBar startedAt={session.startedAt} expiresAt={session.expiresAt} onExpire={() => { setSession(null); setRecord(null); setExpired(true); }} />}
-      {cachedAt && <div className="card card--warning card--tight mt-md text-sm" role="status">📡 Offline: showing the information saved on {new Date(cachedAt).toLocaleString()}.</div>}
+      {cachedAt && <div className="card card--warning card--tight mt-md text-sm" role="status">{t("emergency.offlineSaved", { time: new Date(cachedAt).toLocaleString() })}</div>}
       {expired && (
         <div className="card card--warning mt-md center-state" role="alert" style={{ padding: "var(--space-lg)" }}>
-          <div style={{ fontSize: 40 }}>⏰</div><h4>Session expired</h4><p className="text-sm mb-md">Your access timed out for the patient's security.</p>
-          <button className="btn btn--primary" onClick={() => setExpired(false)}>🔄 Verify again</button>
+          <div style={{ fontSize: 40 }}>⏰</div><h4>{t("emergency.sessionExpired")}</h4><p className="text-sm mb-md">{t("emergency.sessionExpiredDesc")}</p>
+          <button className="btn btn--primary" onClick={() => setExpired(false)}>{t("emergency.verifyAgain")}</button>
         </div>)}
 
       {/* ===== LEVEL 1 ===== */}
       <div className="animate-in" style={{ paddingTop: "var(--space-lg)" }}>
         <AccessPill tier={1} />
-        <h2 style={{ marginBottom: ".4rem" }}>{d.fullName || "Unknown patient"}{age !== null && <span className="text-muted" style={{ fontSize: "var(--font-lg)", fontWeight: 500 }}> · {age} yrs</span>}</h2>
+        <h2 style={{ marginBottom: ".4rem" }}>{d.fullName || t("emergency.unknown")}{age !== null && <span className="text-muted" style={{ fontSize: "var(--font-lg)", fontWeight: 500 }}> · {age} {t("emergency.yrs")}</span>}</h2>
         <div className="row mb-lg" style={{ gap: ".6rem" }}>
           {d.bloodGroup && d.bloodGroup !== "Unknown" && <span className="badge badge--blood" aria-label={`Blood group ${d.bloodGroup}`}>🩸 {d.bloodGroup}</span>}
           {(d.conditions || []).map((c: string) => <span key={c} className="badge badge--condition">{c}</span>)}
-          {d.organDonor && <span className="badge badge--safe">Organ donor</span>}
+          {d.organDonor && <span className="badge badge--safe">{t("emergency.organDonor")}</span>}
         </div>
 
-        {d.emergencyInstructions && <div className="card card--danger mb-md"><h4 style={{ color: "var(--emergency-red)", marginBottom: ".4rem" }}>⚠️ Emergency instructions</h4><p style={{ color: "var(--text-primary)" }} className="pre">{d.emergencyInstructions}</p></div>}
-        {(d.allergies || []).length > 0 && <div className="card card--warning mb-md"><h4 style={{ color: "var(--warning-amber)", marginBottom: ".4rem" }}>🚨 Allergies</h4><div className="tags">{d.allergies.map((a: string) => <span key={a} className="badge badge--allergy">{a}</span>)}</div></div>}
+        {d.emergencyInstructions && <div className="card card--danger mb-md"><h4 style={{ color: "var(--emergency-red)", marginBottom: ".4rem" }}>{t("emergency.instructions")}</h4><p style={{ color: "var(--text-primary)" }} className="pre">{d.emergencyInstructions}</p></div>}
+        {(d.allergies || []).length > 0 && <div className="card card--warning mb-md"><h4 style={{ color: "var(--warning-amber)", marginBottom: ".4rem" }}>{t("emergency.allergies")}</h4><div className="tags">{d.allergies.map((a: string) => <span key={a} className="badge badge--allergy">{a}</span>)}</div></div>}
 
         {primary ? (
           <div className="mb-md">
-            <a className="btn btn--danger btn--lg btn--full pulse-emergency" href={tel(primary.phone)}>📞 Call {primary.name}</a>
+            <a className="btn btn--danger btn--lg btn--full pulse-emergency" href={tel(primary.phone)}>{t("emergency.callContact", { name: primary.name })}</a>
             <p className="text-xs text-center text-muted mt-sm">{[primary.relationship, primary.phone].filter(Boolean).join(" · ")}</p>
           </div>
-        ) : <p className="text-sm text-muted mb-md">The owner has not shared an emergency contact at this level.</p>}
+        ) : <p className="text-sm text-muted mb-md">{t("emergency.noContact")}</p>}
         {(d.emergencyContacts || []).length > 1 && <Contacts list={d.emergencyContacts.slice(1)} />}
         <div className="row mb-md" style={{ justifyContent: "center" }}>
-          <span className="text-sm">Emergency services:</span><a className="btn btn--ghost btn--sm" href="tel:112">📞 112</a><a className="btn btn--ghost btn--sm" href="tel:108">📞 108</a>
+          <span className="text-sm">{t("emergency.services")}</span><a className="btn btn--ghost btn--sm" href="tel:112">{t("emergency.call112")}</a><a className="btn btn--ghost btn--sm" href="tel:108">{t("emergency.call108")}</a>
         </div>
         {extraPublic.length > 0 && <div className="mb-md"><RecordList data={d} skip={lvl1Keys} /></div>}
 
@@ -162,8 +172,8 @@ export default function Emergency() {
         {!session && <VerifyPanel token={token} onGranted={grant} />}
         {session && (
           <div className="card card--success card--tight mb-md row row--between" role="status">
-            <span className="text-sm">✅ Verified access <b>Level {tier}</b></span>
-            <span className="row"><button className="btn btn--ghost btn--sm" disabled={!!record?.extended} onClick={extend}>+5 min</button><button className="btn btn--ghost btn--sm" onClick={endSession}>End session</button></span>
+            <span className="text-sm">{t("emergency.verifiedLevel", { tier })}</span>
+            <span className="row"><button className="btn btn--ghost btn--sm" disabled={!!record?.extended} onClick={extend}>{t("emergency.extend5")}</button><button className="btn btn--ghost btn--sm" onClick={endSession}>{t("emergency.endSession")}</button></span>
           </div>
         )}
         {err && <div className="form-error" role="alert">{err}</div>}
@@ -174,9 +184,9 @@ export default function Emergency() {
                 <span className={`badge ${w.level === "high" ? "badge--danger" : "badge--warn"}`}>{w.level === "high" ? "⚠️ High risk" : "Caution"}</span> <b style={{ color: "var(--text-primary)" }}>{w.message}</b>
               </div>))}
             <div className="card mt-md">
-              <h4 className="card__title">{tier === 3 ? "📄 Complete medical profile" : "📋 Verified medical information"}</h4>
+              <h4 className="card__title">{tier === 3 ? t("emergency.completeProfile") : t("emergency.verifiedInfo")}</h4>
               <RecordList data={record.data} skip={tier === 3 ? lvl1Keys.filter((k) => k in d) : Object.keys(d)} />
-              {verifiedKeys.length === 0 && tier === 2 && <p className="text-xs text-muted mt-sm">Nothing more is shared at Level 2 for this patient.</p>}
+              {verifiedKeys.length === 0 && tier === 2 && <p className="text-xs text-muted mt-sm">{t("emergency.nothingMoreTier2")}</p>}
             </div>
           </div>
         )}
@@ -187,30 +197,30 @@ export default function Emergency() {
         <AccessPill tier={3} />
         {tier < 3 && (
           <div className="card card--danger">
-            <h4 className="card__title">🔴 Emergency override</h4>
-            <p className="text-sm mb-md">For hospital staff in a genuine emergency. You sign in with your hospital and council ID, the patient's emergency contact can deny the request, and everything is permanently logged under your name.</p>
-            {!session && <p className="text-xs text-muted mb-sm">Verify at Level 2 first so the override is traceable to your phone.</p>}
-            <button className="btn btn--danger btn--full" disabled={!session} onClick={() => setOverrideOpen(true)}>⚡ Emergency override: hospital staff sign-in</button>
-            {isPro && <button className="btn btn--primary btn--full mt-sm" disabled={busy} onClick={professional}>🩺 Verified professional access</button>}
+            <h4 className="card__title">{t("override.title")}</h4>
+            <p className="text-sm mb-md">{t("override.desc")}</p>
+            {!session && <p className="text-xs text-muted mb-sm">{t("override.verifyFirst")}</p>}
+            <button className="btn btn--danger btn--full" disabled={!session} onClick={() => setOverrideOpen(true)}>{t("override.btnStaff")}</button>
+            {isPro && <button className="btn btn--primary btn--full mt-sm" disabled={busy} onClick={professional}>{t("override.btnPro")}</button>}
           </div>
         )}
         {tier === 3 && (
           <div className="card card--success card--tight text-sm" role="status">
-            ✅ Level 3 is unlocked. All information is shown above.
+            {t("override.unlockedMsg")}
             {record?.responder && <div className="text-xs mt-sm" style={{ color: "var(--text-primary)" }}>🔒 Accessed by <b>{record.responder.name}</b>, {record.responder.designation}{record.responder.hospitalName && `, ${record.responder.hospitalName}`} · ID {record.responder.staffId}. Logged and the patient was notified.</div>}
             {record?.profileUpdatedAt && <div className="text-xs text-muted mt-sm">Profile last updated {new Date(record.profileUpdatedAt).toLocaleString()}</div>}
           </div>)}
       </div>
 
-      <div className="text-center mt-xl"><button className="btn btn--ghost btn--sm" onClick={() => setReportOpen(true)}>🚩 Report misuse</button></div>
+      <div className="text-center mt-xl"><button className="btn btn--ghost btn--sm" onClick={() => setReportOpen(true)}>{t("emergency.reportMisuse")}</button></div>
 
-      <Modal open={overrideOpen && !!session && tier < 3} title="⚠️ Emergency override: hospital staff" danger onClose={() => setOverrideOpen(false)}>
+      <Modal open={overrideOpen && !!session && tier < 3} title={t("override.title")} danger onClose={() => setOverrideOpen(false)}>
         {session && <OverridePanel token={token} session={session.token} demo={t1?.demo ?? null} onGranted={overrideGranted} onCancel={() => setOverrideOpen(false)} onSessionLost={() => { setOverrideOpen(false); setSession(null); setRecord(null); setExpired(true); }} />}
       </Modal>
-      <Modal open={reportOpen} title="🚩 Report misuse" onClose={() => setReportOpen(false)}>
-        <p className="modal__text">Tell the owner something looks wrong with this QR code or how it is being used.</p>
-        <textarea className="form-textarea" aria-label="What happened?" maxLength={300} placeholder="What happened? (optional)" value={reportText} onChange={(e) => setReportText(e.target.value)} />
-        <div className="modal__actions"><button className="btn btn--ghost" onClick={() => setReportOpen(false)}>Cancel</button><button className="btn btn--danger" disabled={busy} onClick={report}>Send report</button></div>
+      <Modal open={reportOpen} title={t("emergency.misuseTitle")} onClose={() => setReportOpen(false)}>
+        <p className="modal__text">{t("emergency.misuseDesc")}</p>
+        <textarea className="form-textarea" aria-label="What happened?" maxLength={300} placeholder={t("emergency.misusePlaceholder")} value={reportText} onChange={(e) => setReportText(e.target.value)} />
+        <div className="modal__actions"><button className="btn btn--ghost" onClick={() => setReportOpen(false)}>{t("emergency.misuseCancel")}</button><button className="btn btn--danger" disabled={busy} onClick={report}>{t("emergency.misuseSend")}</button></div>
       </Modal>
     </div>
   );

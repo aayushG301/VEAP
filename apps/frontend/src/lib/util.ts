@@ -8,12 +8,14 @@ export function formatCountdown(ms: number): string {
 }
 export const fmtDate = (t: number) => new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-export function timeAgo(t: number, now = Date.now()): string {
+type Tr = (key: string, params?: Record<string, string | number>) => string;
+
+export function timeAgo(t: number, now = Date.now(), tr?: Tr): string {
   const s = Math.max(0, Math.round((now - t) / 1000));
-  if (s < 45) return "just now";
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
-  if (s < 7 * 86400) return `${Math.round(s / 86400)} d ago`;
+  if (s < 45) return tr ? tr("time.justNow") : "just now";
+  if (s < 3600) return tr ? tr("time.minAgo", { n: Math.round(s / 60) }) : `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return tr ? tr("time.hAgo", { n: Math.round(s / 3600) }) : `${Math.round(s / 3600)} h ago`;
+  if (s < 7 * 86400) return tr ? tr("time.dAgo", { n: Math.round(s / 86400) }) : `${Math.round(s / 86400)} d ago`;
   return new Date(t).toLocaleDateString();
 }
 

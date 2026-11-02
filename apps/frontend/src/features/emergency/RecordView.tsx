@@ -1,5 +1,6 @@
 import type React from "react";
 import { ageFrom } from "../../lib/util";
+import { useI18n } from "../../lib/i18n";
 
 const LABELS: Record<string, string> = { fullName: "Name", dateOfBirth: "Date of birth", bloodGroup: "Blood group", allergies: "Allergies", conditions: "Conditions", medications: "Medications", implants: "Implants / devices", organDonor: "Organ donor", emergencyContacts: "Emergency contacts", doctor: "Doctor / hospital", emergencyInstructions: "Emergency instructions", insurance: "Insurance", notes: "Medical history & notes",
   prescriptions: "Prescriptions", allergyDetails: "Allergy reactions", surgeries: "Surgical & hospital history", vaccinations: "Vaccinations", implantDetails: "Implant details & MRI safety",
@@ -21,6 +22,7 @@ export function Contacts({ list }: { list: { name: string; phone: string; relati
 }
 
 function Value({ k, v }: { k: string; v: any }) {
+  const { t } = useI18n();
   if (k === "emergencyContacts") return <Contacts list={v} />;
   if (k === "prescriptions") return <>{v.map((r: any, i: number) => <Line key={i}><b style={{ color: "var(--text-primary)" }}>{r.drug}</b>{[r.dose, r.frequency].filter(Boolean).length > 0 && <> · {[r.dose, r.frequency].filter(Boolean).join(" · ")}</>}{muted(r.prescriber && `prescribed by ${r.prescriber}`)}</Line>)}</>;
   if (k === "allergyDetails") return <>{v.map((r: any, i: number) => <Line key={i}><span className="badge badge--allergy">{r.allergen}</span> <span className={`badge ${SEV[r.severity] || "badge--warn"}`}>{r.severity}</span>{muted(r.reaction)}</Line>)}</>;
@@ -35,12 +37,12 @@ function Value({ k, v }: { k: string; v: any }) {
   if (k === "specialists") return <>{v.map((r: any, i: number) => <Line key={i}><b style={{ color: "var(--text-primary)" }}>{r.name}</b>{muted(r.specialty)}{r.phone && <> · <a href={tel(r.phone)}>{r.phone}</a></>}</Line>)}</>;
   if (k === "insuranceDetails") return <>{[v.provider, v.policyNumber && `Policy ${v.policyNumber}`].filter(Boolean).join(" · ")}{v.tpaHelpline && <> · TPA helpline <a href={tel(v.tpaHelpline)}>{v.tpaHelpline}</a></>}</>;
   if (k === "lastVerifiedAt") { const d = new Date(v); return <>Confirmed current by the patient on {isNaN(+d) ? v : d.toLocaleDateString()}</>; }
-  if (k === "allergies") return <div className="tags">{v.length ? v.map((x: string) => <span key={x} className="badge badge--allergy">{x}</span>) : "None recorded"}</div>;
-  if (k === "conditions") return <div className="tags">{v.length ? v.map((x: string) => <span key={x} className="badge badge--condition">{x}</span>) : "None recorded"}</div>;
-  if (Array.isArray(v)) return <>{v.length ? v.join(", ") : "None recorded"}</>;
+  if (k === "allergies") return <div className="tags">{v.length ? v.map((x: string) => <span key={x} className="badge badge--allergy">{x}</span>) : t("record.noneRecorded")}</div>;
+  if (k === "conditions") return <div className="tags">{v.length ? v.map((x: string) => <span key={x} className="badge badge--condition">{x}</span>) : t("record.noneRecorded")}</div>;
+  if (Array.isArray(v)) return <>{v.length ? v.join(", ") : t("record.noneRecorded")}</>;
   if (k === "doctor") return <>{[v.name, v.hospital].filter(Boolean).join(" · ") || "n/a"}{v.phone && <> · <a href={tel(v.phone)}>{v.phone}</a></>}</>;
-  if (typeof v === "boolean") return <>{v ? "Yes" : "No"}</>;
-  if (k === "dateOfBirth") { const a = ageFrom(v); return <>{v}{a !== null && ` (age ${a})`}</>; }
+  if (typeof v === "boolean") return <>{v ? t("record.yes") : t("record.no")}</>;
+  if (k === "dateOfBirth") { const a = ageFrom(v); return <>{v}{a !== null && ` (${t("emergency.yrs")} ${a})`}</>; }
   return <span className="pre">{String(v)}</span>;
 }
 
@@ -48,8 +50,9 @@ function Value({ k, v }: { k: string; v: any }) {
 export const isEmpty = (v: any) => v === undefined || v === null || v === "" || v === false || (Array.isArray(v) && v.length === 0) || (typeof v === "object" && !Array.isArray(v) && !Object.values(v).some((x) => x && x !== "unknown"));
 
 export function RecordList({ data, skip = [] }: { data: Record<string, any>; skip?: string[] }) {
+  const { t } = useI18n();
   // Hide fields that are empty (nothing recorded), so responders only see useful information.
   const keys = ORDER.filter((k) => !isEmpty(data[k]) && !skip.includes(k));
-  if (!keys.length) return <div className="empty">No additional information is available at this level.</div>;
-  return <dl className="data-list">{keys.map((k) => <div key={k}><dt>{LABELS[k] || k}</dt><dd><Value k={k} v={data[k]} /></dd></div>)}</dl>;
+  if (!keys.length) return <div className="empty">{t("record.empty")}</div>;
+  return <dl className="data-list">{keys.map((k) => <div key={k}><dt>{t(`record.${k}`) || LABELS[k] || k}</dt><dd><Value k={k} v={data[k]} /></dd></div>)}</dl>;
 }

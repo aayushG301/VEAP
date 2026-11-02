@@ -124,16 +124,24 @@ export function startTelegramBot() {
   running = true;
   void (async () => {
     let offset = 0;
+    let conflictLogged = false;
     try { await tg("deleteWebhook"); } catch { /* polling needs no webhook */ }
     const me = await botUsername();
     console.log(`[telegram] bot @${me ?? "?"} polling for updates`);
     while (running) {
       try {
         const updates = await tg<any[]>("getUpdates", { offset, timeout: 25, allowed_updates: ["message", "callback_query"] }, 35000);
+        if (conflictLogged) { console.log("[telegram] conflict resolved, polling resumed"); conflictLogged = false; }
         for (const u of updates) { offset = u.update_id + 1; try { await handleUpdate(u); } catch (e: any) { console.error("[telegram] update error:", e?.message); } }
       } catch (e: any) {
-        console.error("[telegram] poll error:", e?.message);
-        await sleep(e?.status === 409 ? 8000 : 3000); // 409 = another instance is polling (e.g. during a deploy)
+        // 409 = another instance still polling (hot-reload race). Log only once, back off 8 s.
+        if (e?.status === 409) {
+          if (!conflictLogged) { console.warn("[telegram] another instance is polling — waiting for it to stop..."); conflictLogged = true; }
+          await sleep(8000);
+        } else {
+          console.error("[telegram] poll error:", e?.message);
+          await sleep(3000);
+        }
       }
     }
   })();

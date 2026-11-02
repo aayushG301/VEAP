@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../../lib/api";
 import { OtpBoxes } from "../../components/OtpBoxes";
+import { useI18n } from "../../lib/i18n";
 
 interface Granted { sessionToken: string; tier: number; expiresAt: number }
 
 export default function VerifyPanel({ token, onGranted }: { token: string; onGranted: (g: Granted) => void }) {
+  const { lang, t } = useI18n();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState(""); const [otp, setOtp] = useState<any>(null); const [code, setCode] = useState("");
   const [err, setErr] = useState(""); const [bad, setBad] = useState(false); const [busy, setBusy] = useState(false); const [cool, setCool] = useState(0);
@@ -29,31 +31,39 @@ export default function VerifyPanel({ token, onGranted }: { token: string; onGra
 
   return (
     <div className="card">
-      <h4 className="card__title">🔐 Verify your identity</h4>
+      <h4 className="card__title">{t("verify.title")}</h4>
       {step === "phone" ? (
         <form onSubmit={(e) => { e.preventDefault(); send(); }}>
-          <p className="text-sm mb-md">To protect the patient, a 6-digit code is sent to <b style={{ color: "var(--text-primary)" }}>their emergency contact</b> (privately, on Telegram or SMS). Enter your own number so this access is logged, then ask the contact for the code.</p>
-          <div className="form-group"><label className="form-label" htmlFor="ph">Your phone number</label>
+          <p className="text-sm mb-md">{t("verify.phoneDesc")}</p>
+          <div className="form-group"><label className="form-label" htmlFor="ph">{t("verify.phoneLabel")}</label>
             <input id="ph" className="form-input" type="tel" required inputMode="tel" autoComplete="tel" placeholder="+91 90000 12345" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
           {err && <div className="form-error" role="alert">{err}</div>}
-          <button className="btn btn--warning btn--full" disabled={busy || phone.replace(/\D/g, "").length < 7}>{busy ? <span className="spinner" /> : "📨 Send code to the emergency contact"}</button>
+          <button className="btn btn--warning btn--full" disabled={busy || phone.replace(/\D/g, "").length < 7}>{busy ? <span className="spinner" /> : t("verify.sendBtn")}</button>
         </form>
       ) : (
         <div>
           <p className="text-sm text-center">{otp.sentTo === "emergency_contact"
-            ? <>Code sent to <b style={{ color: "var(--text-primary)" }}>{otp.contactName || "the patient's emergency contact"}</b> ({otp.maskedTarget}). Ask them to read it to you.</>
-            : <>The patient has no emergency contact on file, so the code was sent to <b style={{ color: "var(--text-primary)" }}>your phone</b>.</>}</p>
-          {otp.delivery === "telegram" && <p className="text-xs text-muted text-center mt-sm">🔒 The code was sent privately to their Telegram. Only ask for it if you are physically with the patient. They can also block this request.</p>}
+            ? <>
+                {lang === "hi" ? "कोड भेजा गया है " : lang === "mr" ? "कोड पाठवला आहे " : "Code sent to "}
+                <b style={{ color: "var(--text-primary)" }}>{otp.contactName || (lang === "hi" ? "मरीज के आपातकालीन संपर्क" : lang === "mr" ? "रुग्णाच्या आपत्कालीन संपर्काला" : "the patient's emergency contact")}</b>
+                {` (${otp.maskedTarget}). `}
+                {lang === "hi" ? "उनसे कोड पूछें।" : lang === "mr" ? "त्यांना कोड वाचून दाखवण्यास सांगा." : "Ask them to read it to you."}
+              </>
+            : <>
+                {lang === "hi" ? "मरीज का कोई आपातकालीन संपर्क दर्ज नहीं है, अतः कोड भेजा गया " : lang === "mr" ? "रुग्णाचा कोणताही आपत्कालीन संपर्क नोंदवलेला नाही, त्यामुळे कोड पाठवला " : "The patient has no emergency contact on file, so the code was sent to "}
+                <b style={{ color: "var(--text-primary)" }}>{lang === "hi" ? "आपके फोन पर" : lang === "mr" ? "तुमच्या फोनवर" : "your phone"}</b>.
+              </>}</p>
+          {otp.delivery === "telegram" && <p className="text-xs text-muted text-center mt-sm">{t("verify.telegramNote")}</p>}
           {otp.devOtp && (
             <div className="demo-banner mt-md"><span>🧪 <b>Demo mode:</b> SMS is simulated. The code is <b>{otp.devOtp}</b></span>
-              <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setCode(otp.devOtp); verify(otp.devOtp); }}>Auto-fill</button></div>)}
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setCode(otp.devOtp); verify(otp.devOtp); }}>{t("verify.autoFill")}</button></div>)}
           <OtpBoxes value={code} onChange={(v) => { setCode(v); setBad(false); }} error={bad} onComplete={(c) => verify(c)} disabled={busy} />
           {err && <p className="form-error text-center" role="alert">{err}</p>}
-          <p className="text-xs text-muted text-center mb-md">The code is valid for 5 minutes.</p>
-          <button className="btn btn--warning btn--full" disabled={busy || code.length !== 6} onClick={() => verify()}>{busy ? <span className="spinner" /> : "🔓 Verify code"}</button>
+          <p className="text-xs text-muted text-center mb-md">{t("verify.valid5min")}</p>
+          <button className="btn btn--warning btn--full" disabled={busy || code.length !== 6} onClick={() => verify()}>{busy ? <span className="spinner" /> : t("verify.verifyBtn")}</button>
           <div className="row mt-md" style={{ justifyContent: "center" }}>
-            <button type="button" className="btn btn--ghost btn--sm" disabled={cool > 0 || busy} onClick={send}>{cool > 0 ? `Resend in ${cool}s` : "Resend code"}</button>
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setStep("phone"); setOtp(null); setErr(""); }}>Change number</button>
+            <button type="button" className="btn btn--ghost btn--sm" disabled={cool > 0 || busy} onClick={send}>{cool > 0 ? t("verify.resendIn", { s: cool }) : t("verify.resend")}</button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setStep("phone"); setOtp(null); setErr(""); }}>{t("verify.changeNumber")}</button>
           </div>
         </div>
       )}

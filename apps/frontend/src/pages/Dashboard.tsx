@@ -2,17 +2,26 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useI18n } from "../lib/i18n";
 import ProfileTab from "../features/profile/ProfileTab";
 import QrTab from "../features/qr/QrTab";
 import SecurityTab from "../features/security/SecurityTab";
 import ActivityTab from "../features/audit/ActivityTab";
 
-const TABS = [["profile", "👤", "Profile"], ["qr", "📱", "My QR"], ["activity", "🔔", "Activity"], ["security", "🔐", "Security"]] as const;
-type TabKey = (typeof TABS)[number][0];
+type TabKey = "profile" | "qr" | "activity" | "security";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [params, setParams] = useSearchParams();
+
+  const TABS: [TabKey, string, string][] = [
+    ["profile", "👤", t("dashboard.tabProfile")],
+    ["qr", "📱", t("dashboard.tabQr")],
+    ["activity", "🔔", t("dashboard.tabActivity")],
+    ["security", "🔐", t("dashboard.tabSecurity")],
+  ];
+
   const initial = (params.get("tab") as TabKey) || "profile";
   const [tab, setTab] = useState<TabKey>(TABS.some((t) => t[0] === initial) ? initial : "profile");
   const [unread, setUnread] = useState(0);
@@ -25,12 +34,12 @@ export default function Dashboard() {
 
   return (
     <div className="container container--wide has-bottom-nav" style={{ paddingTop: "var(--space-lg)" }}>
-      <h2 className="page-title">Hi, {user?.name.split(" ")[0]} 👋</h2>
-      <p className="page-sub">Keep your emergency profile up to date. It's what responders will see.</p>
+      <h2 className="page-title">{t("dashboard.greeting", { name: user?.name.split(" ")[0] ?? "" })}</h2>
+      <p className="page-sub">{t("dashboard.subtitle")}</p>
       {hasQr === false && tab !== "qr" && (
         <div className="card card--info card--tight mb-md row row--between">
-          <span className="text-sm" style={{ color: "var(--text-primary)" }}>📱 You don't have a QR code yet. Generate one so responders can find your profile.</span>
-          <button className="btn btn--primary btn--sm" onClick={() => go("qr")}>Create QR</button>
+          <span className="text-sm" style={{ color: "var(--text-primary)" }}>{t("dashboard.noQr")}</span>
+          <button className="btn btn--primary btn--sm" onClick={() => go("qr")}>{t("dashboard.createQr")}</button>
         </div>
       )}
       <div className="tabs" role="tablist" aria-label="Dashboard sections">

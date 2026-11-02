@@ -4,37 +4,45 @@ export interface ScanFeatures { scans_1m: number; scans_10m: number; distinct_ip
 
 export function localAnomaly(f: ScanFeatures): { score: number; reasons: string[] } {
   let s = 0; const reasons: string[] = [];
-  if (f.scans_1m > 10) { s += 40; reasons.push("high scan velocity"); } else if (f.scans_1m > 5) { s += 20; reasons.push("elevated scan velocity"); }
-  if (f.scans_10m > 30) { s += 25; reasons.push("many scans in 10 minutes"); }
-  if (f.distinct_ips_10m > 4) { s += 30; reasons.push("many distinct IPs"); } else if (f.distinct_ips_10m > 2) { s += 12; reasons.push("multiple IPs"); }
+  if (f.scans_1m >= 18) { s += 60; reasons.push("critical scan burst"); }
+  else if (f.scans_1m > 10) { s += 35; reasons.push("high scan velocity"); }
+  else if (f.scans_1m > 5) { s += 20; reasons.push("elevated scan velocity"); }
+
+  if (f.scans_10m > 30) { s += 30; reasons.push("many scans in 10 minutes"); }
+  else if (f.scans_10m >= 18) { s += 25; reasons.push("sustained scan burst"); }
+  else if (f.scans_10m >= 10) { s += 12; reasons.push("elevated 10m scans"); }
+
+  if (f.distinct_ips_10m > 4) { s += 30; reasons.push("many distinct IPs"); }
+  else if (f.distinct_ips_10m > 2) { s += 15; reasons.push("multiple IPs"); }
+
   if (f.failed_otp_ratio > 0.5) { s += 25; reasons.push("high failed OTP ratio"); }
   return { score: Math.min(100, s), reasons };
 }
 
 export const GUIDES: { id: string; title: string; keys: string[]; steps: string[] }[] = [
-  { id: "cardiac_arrest", title: "Unresponsive and not breathing normally (suspected cardiac arrest)", keys: ["unconscious", "unresponsive", "not breathing", "cardiac arrest", "no pulse", "collapsed"],
+  { id: "cardiac_arrest", title: "Unresponsive and not breathing normally (suspected cardiac arrest)", keys: ["unconscious", "unresponsive", "not breathing", "cardiac arrest", "no pulse", "collapsed", "बेहोश", "सांस नहीं", "बेसुध", "नाड़ी बंद", "श्वास घेत नाही", "नाडी नाही"],
     steps: ["Call your local emergency number now (or ask someone to) and ask for an AED.", "Start chest compressions: heel of hand on the centre of the chest, push hard and fast (about 100-120 per minute, 5-6 cm deep for adults), allow full recoil.", "Use an AED as soon as it arrives and follow its voice prompts.", "Do not stop until professionals take over or the person starts breathing normally."] },
-  { id: "heart_attack", title: "Suspected heart attack", keys: ["chest pain", "heart attack", "chest pressure", "left arm pain"],
+  { id: "heart_attack", title: "Suspected heart attack", keys: ["chest pain", "heart attack", "chest pressure", "left arm pain", "दिल का दौरा", "सीने में दर्द", "छातीत दुखणे", "हार्ट अटॅक", "हार्ट अटैक"],
     steps: ["Call your local emergency number immediately.", "Keep the person seated or semi-reclined, calm and still.", "Loosen tight clothing. Do not let them walk or drive.", "Only give aspirin if the emergency dispatcher advises it AND the person is not allergic and not on blood thinners.", "Be ready to start CPR if they become unresponsive."] },
-  { id: "choking", title: "Choking adult (cannot cough, speak or breathe)", keys: ["choking", "choke", "cannot breathe food", "something stuck in throat"],
+  { id: "choking", title: "Choking adult (cannot cough, speak or breathe)", keys: ["choking", "choke", "cannot breathe food", "something stuck in throat", "दम घुटना", "गले में अटकना", "घसा अडकणे", "गुदमरणे"],
     steps: ["Ask: are you choking? If they can cough or speak, encourage coughing.", "If they cannot: give up to 5 firm back blows between the shoulder blades.", "Then up to 5 abdominal thrusts (stand behind, fist above navel, pull inwards and upwards).", "Alternate 5 back blows and 5 thrusts. Call emergency services if not cleared.", "If they become unresponsive, start CPR."] },
-  { id: "bleeding", title: "Severe bleeding", keys: ["bleeding", "blood loss", "cut", "stab", "wound", "hemorrhage"],
+  { id: "bleeding", title: "Severe bleeding", keys: ["bleeding", "blood loss", "cut", "stab", "wound", "hemorrhage", "खून बहना", "रक्तस्त्राव", "घाव", "जखम", "रक्त वाहणे"],
     steps: ["Call your local emergency number for heavy bleeding.", "Apply firm, direct pressure with a clean cloth. Do not remove soaked cloth; add more on top.", "Keep the person lying down and warm. Raise the limb if no fracture is suspected.", "If a limb is bleeding uncontrollably and you are trained, apply a tourniquet above the wound."] },
-  { id: "anaphylaxis", title: "Severe allergic reaction (anaphylaxis)", keys: ["allergic", "anaphylaxis", "swelling throat", "hives", "epipen", "sting"],
+  { id: "anaphylaxis", title: "Severe allergic reaction (anaphylaxis)", keys: ["allergic", "anaphylaxis", "swelling throat", "hives", "epipen", "sting", "एलर्जी", "गले में सूजन", "गांठ", "ॲलर्जी", "घसा सुजणे"],
     steps: ["Call your local emergency number immediately.", "Use an adrenaline (epinephrine) auto-injector if one is available, in the outer mid-thigh.", "Lay the person flat with legs raised (sit up if breathing is difficult).", "A second dose may be given after 5-15 minutes if there is no improvement, per device instructions.", "Be ready to start CPR."] },
-  { id: "seizure", title: "Seizure", keys: ["seizure", "convulsion", "fit", "epilepsy"],
+  { id: "seizure", title: "Seizure", keys: ["seizure", "convulsion", "fit", "epilepsy", "दौरा", "मिरगी", "झटके", "फिट"],
     steps: ["Note the time. Move hard or sharp objects away.", "Cushion the head. Do not restrain and do not put anything in the mouth.", "When the shaking stops, place the person on their side (recovery position).", "Call emergency services if it lasts over 5 minutes, repeats, it is a first seizure, there is injury, or breathing does not return to normal."] },
-  { id: "stroke", title: "Suspected stroke (FAST)", keys: ["stroke", "face drooping", "slurred speech", "arm weakness"],
+  { id: "stroke", title: "Suspected stroke (FAST)", keys: ["stroke", "face drooping", "slurred speech", "arm weakness", "स्ट्रोक", "लकवा", "पक्षाघात", "तोंड वाकडे"],
     steps: ["Check FAST: Face drooping, Arm weakness, Speech difficulty, Time to call emergency services.", "Note the time symptoms started or when the person was last seen well.", "Keep them still and comfortable. Give nothing to eat or drink and no medication."] },
-  { id: "burns", title: "Burn", keys: ["burn", "scald", "fire"],
+  { id: "burns", title: "Burn", keys: ["burn", "scald", "fire", "जलना", "आग", "भाजणे", "पोळणे"],
     steps: ["Cool the burn under cool running water for 20 minutes.", "Remove rings or tight items near the area unless stuck to the skin.", "Cover loosely with clean cling film or a non-fluffy dressing.", "Do not use ice, butter or creams. Seek emergency care for large, deep, facial or chemical burns."] },
-  { id: "hypoglycemia", title: "Low blood sugar (diabetic emergency)", keys: ["diabetic", "low blood sugar", "hypoglycemia", "insulin", "sugar low"],
+  { id: "hypoglycemia", title: "Low blood sugar (diabetic emergency)", keys: ["diabetic", "low blood sugar", "hypoglycemia", "insulin", "sugar low", "शुगर कम", "डायबिटीज", "साखर कमी", "मधुमेह"],
     steps: ["If conscious and able to swallow: give 15-20 g fast sugar (glucose tablets or juice).", "Recheck in 15 minutes and repeat if still unwell.", "If drowsy, unconscious or unable to swallow: give nothing by mouth, place on their side and call emergency services."] },
-  { id: "fracture", title: "Suspected fracture", keys: ["fracture", "broken bone", "broken", "fall"],
+  { id: "fracture", title: "Suspected fracture", keys: ["fracture", "broken bone", "broken", "fall", "हड्डी टूटना", "फ्रैक्चर", "हाड मोडणे", "अस्थिभंग"],
     steps: ["Keep the injured part still; do not try to straighten it.", "Control any bleeding without pressing on bone.", "Apply a wrapped cold pack. Do not move the person if the neck or back may be injured and call emergency services."] },
-  { id: "heat_stroke", title: "Heat stroke", keys: ["heat stroke", "heatstroke", "overheated"],
+  { id: "heat_stroke", title: "Heat stroke", keys: ["heat stroke", "heatstroke", "overheated", "लू लगना", "उष्माघात", "अति उष्णता"],
     steps: ["Call emergency services if confused, unconscious or not sweating.", "Move to a cool place and cool rapidly with water, wet cloths and fanning.", "Give small sips of water only if fully alert."] },
-  { id: "poisoning", title: "Suspected poisoning", keys: ["poison", "overdose", "swallowed", "ingested"],
+  { id: "poisoning", title: "Suspected poisoning", keys: ["poison", "overdose", "swallowed", "ingested", "जहर", "विषाक्तता", "विषबाधा", "औषधांचा अतिरेक"],
     steps: ["Call emergency services or your local poison centre now.", "Do not induce vomiting.", "Keep the container or substance to show responders and note the amount and time."] },
 ];
 

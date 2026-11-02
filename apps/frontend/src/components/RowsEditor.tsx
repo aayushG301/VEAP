@@ -1,4 +1,4 @@
-export interface RowCol { key: string; label: string; placeholder?: string; options?: string[]; grow?: number }
+export interface RowCol { key: string; label: string; placeholder?: string; options?: string[]; optionLabels?: Record<string, string>; grow?: number }
 export type Row = Record<string, string>;
 
 /** Compact editor for a list of small records (prescriptions, surgeries, ...). The first column is the required one. */
@@ -13,7 +13,7 @@ export function RowsEditor({ id, label, rows, cols, onChange, max = 20, addLabel
             <div key={c.key} style={{ flex: `${c.grow ?? 1} 1 ${c.options ? 120 : 130}px`, minWidth: 0 }}>
               {i === 0 && <label className="form-label" htmlFor={`${id}-${i}-${c.key}`}>{c.label}</label>}
               {c.options ? (
-                <select id={`${id}-${i}-${c.key}`} className="form-select" aria-label={`${label} ${c.label} ${i + 1}`} value={r[c.key] ?? c.options[0]} onChange={(e) => set(i, c.key, e.target.value)}>{c.options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                <select id={`${id}-${i}-${c.key}`} className="form-select" aria-label={`${label} ${c.label} ${i + 1}`} value={r[c.key] ?? c.options[0]} onChange={(e) => set(i, c.key, e.target.value)}>{c.options.map((o) => <option key={o} value={o}>{c.optionLabels?.[o] ?? o}</option>)}</select>
               ) : (
                 <input id={`${id}-${i}-${c.key}`} className="form-input" aria-label={`${label} ${c.label} ${i + 1}`} placeholder={c.placeholder || c.label} value={r[c.key] ?? ""} onChange={(e) => set(i, c.key, e.target.value)} />
               )}

@@ -95,6 +95,14 @@ p { color: var(--text-secondary); }
 .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--emergency-red), var(--medical-blue)); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; }
 .logo { flex: none; filter: drop-shadow(0 4px 14px rgba(8,127,140,.16)); }
 
+/* ---------- language picker ---------- */
+.lang-picker { display: inline-flex; align-items: center; background: rgba(255,255,255,0.85); border: 1px solid var(--border-glass); border-radius: var(--radius-full); padding: 2px 3px; gap: 2px; box-shadow: var(--shadow-sm); }
+.lang-btn { display: inline-flex; align-items: center; gap: 4px; background: transparent; border: none; padding: 3px 8px; font-size: var(--font-xs); font-weight: 600; border-radius: var(--radius-full); cursor: pointer; color: var(--text-secondary); transition: all var(--transition-fast); }
+.lang-btn:hover { color: var(--text-primary); background: rgba(8,127,140,0.06); }
+.lang-btn.active { background: var(--medical-blue); color: #fff; box-shadow: 0 1px 4px rgba(8,127,140,0.25); }
+.lang-btn .lang-flag { font-size: 0.9em; line-height: 1; }
+.lang-picker--top { margin-bottom: var(--space-sm); }
+
 /* ---------- cards ---------- */
 .card { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: var(--space-lg); box-shadow: var(--shadow-sm); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .card--hover { transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base); }

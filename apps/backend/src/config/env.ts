@@ -45,6 +45,7 @@ export const env = {
   otpMode: (process.env.OTP_MODE || "mock") as "mock" | "twilio" | "telegram",
   // Demo-only escape hatch: show the Level 2 code on screen even in production (OTP_MODE=mock). Never enable for real use.
   demoOtp: process.env.ALLOW_DEMO_OTP === "true",
+  simulateRisk: process.env.SIMULATE_RISK === "true",
   // Create the demo patient, QR and the simulated hospital registry at boot (works in production too, for hosted hackathon demos).
   demoSeed: process.env.DEMO_SEED === "true",
   demoPassword: process.env.DEMO_PASSWORD || "DemoPassw0rd!",
@@ -59,7 +60,7 @@ export const env = {
   },
   twilio: { sid: process.env.TWILIO_ACCOUNT_SID || "", token: process.env.TWILIO_AUTH_TOKEN || "", from: process.env.TWILIO_PHONE_NUMBER || "" },
   defaultCountryCode: process.env.DEFAULT_COUNTRY_CODE || "+91",
-  mlServiceUrl: process.env.ML_SERVICE_URL ?? (isProd ? "" : "http://localhost:8001"),
+  mlServiceUrl: (process.env.ML_SERVICE_URL || (isProd ? "" : "http://localhost:8001")).replace(/\/+$/, ""),
   mlServiceKey: process.env.ML_SERVICE_KEY || "dev-ml-key",
   accessTokenTtlSec: 15 * 60,
   refreshTokenTtlSec: 7 * 24 * 3600,

@@ -2,10 +2,12 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { homeFor, useAuth } from "../lib/auth";
 import { api } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 import { AuthShell, PasswordField } from "../components/AuthShell";
 
 export default function Login() {
   const { login, loginMfa } = useAuth();
+  const { t } = useI18n();
   const nav = useNavigate();
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   const [mfaToken, setMfaToken] = useState<string | null>(null); const [code, setCode] = useState("");
@@ -20,22 +22,25 @@ export default function Login() {
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   };
   return (
-    <AuthShell title={mfaToken ? "Two-factor verification" : "Welcome back"} subtitle={mfaToken ? "Enter the 6-digit code from your authenticator app, or a recovery code." : "Log in to manage your emergency profile."}
-      footer={!mfaToken && <>New to VEAP? <Link to="/register">Create your profile</Link></>}>
+    <AuthShell
+      title={mfaToken ? t("login.mfaTitle") : t("login.title")}
+      subtitle={mfaToken ? t("login.mfaSubtitle") : t("login.subtitle")}
+      footer={!mfaToken && <>{t("login.newToVeap")} <Link to="/register">{t("login.createProfile")}</Link></>}
+    >
       <form onSubmit={submit} aria-label="login form">
         {!mfaToken ? (
           <>
-            <div className="form-group"><label className="form-label" htmlFor="email">Email</label>
+            <div className="form-group"><label className="form-label" htmlFor="email">{t("login.email")}</label>
               <input id="email" className="form-input" type="email" required autoComplete="username" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-            <PasswordField id="pw" label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
+            <PasswordField id="pw" label={t("login.password")} value={password} onChange={setPassword} autoComplete="current-password" />
           </>
         ) : (
-          <div className="form-group"><label className="form-label" htmlFor="code">Authentication code</label>
+          <div className="form-group"><label className="form-label" htmlFor="code">{t("login.authCode")}</label>
             <input id="code" className="form-input" inputMode="text" autoComplete="one-time-code" required autoFocus placeholder="123456" value={code} onChange={(e) => setCode(e.target.value)} /></div>
         )}
         {err && <div className="form-error" role="alert">{err}</div>}
-        <button className="btn btn--primary btn--full mt-md" disabled={busy}>{busy ? <span className="spinner" /> : mfaToken ? "🔓 Verify" : "Log in"}</button>
-        {mfaToken && <button type="button" className="btn btn--ghost btn--full mt-sm" onClick={() => { setMfaToken(null); setCode(""); setErr(""); }}>← Back</button>}
+        <button className="btn btn--primary btn--full mt-md" disabled={busy}>{busy ? <span className="spinner" /> : mfaToken ? t("login.verifyBtn") : t("login.submitBtn")}</button>
+        {mfaToken && <button type="button" className="btn btn--ghost btn--full mt-sm" onClick={() => { setMfaToken(null); setCode(""); setErr(""); }}>{t("login.backBtn")}</button>}
       </form>
     </AuthShell>
   );

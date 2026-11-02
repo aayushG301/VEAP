@@ -1,15 +1,26 @@
 import { useState } from "react";
 import { api } from "../../lib/api";
+import { useI18n } from "../../lib/i18n";
 
-const TYPES: [string, string, string][] = [
-  ["❤️", "Heart attack", "crushing chest pain and left arm pain"], ["🫁", "Not breathing", "unconscious and not breathing, no pulse"], ["🩸", "Severe bleeding", "severe bleeding from a deep cut"], ["🍽️", "Choking", "choking and cannot breathe"],
-  ["⚡", "Seizure", "person is having a seizure"], ["🐝", "Allergic reaction", "severe allergic reaction with swelling throat"], ["🧠", "Stroke", "stroke: face drooping and slurred speech"], ["🔥", "Burn", "burn injury"],
-  ["🍬", "Low blood sugar", "diabetic with low blood sugar, confused"], ["🦴", "Broken bone", "suspected fracture after a fall"], ["🥵", "Heat stroke", "heat stroke, overheated and confused"], ["☠️", "Poisoning", "swallowed poison or overdose"],
+const TYPES: { icon: string; key: string; scenario: string }[] = [
+  { icon: "❤️", key: "heartAttack", scenario: "crushing chest pain and left arm pain" },
+  { icon: "🫁", key: "notBreathing", scenario: "unconscious and not breathing, no pulse" },
+  { icon: "🩸", key: "severeBleeding", scenario: "severe bleeding from a deep cut" },
+  { icon: "🍽️", key: "choking", scenario: "choking and cannot breathe" },
+  { icon: "⚡", key: "seizure", scenario: "person is having a seizure" },
+  { icon: "🐝", key: "allergicReaction", scenario: "severe allergic reaction with swelling throat" },
+  { icon: "🧠", key: "stroke", scenario: "stroke: face drooping and slurred speech" },
+  { icon: "🔥", key: "burn", scenario: "burn injury" },
+  { icon: "🍬", key: "lowBloodSugar", scenario: "diabetic with low blood sugar, confused" },
+  { icon: "🦴", key: "brokenBone", scenario: "suspected fracture after a fall" },
+  { icon: "🥵", key: "heatStroke", scenario: "heat stroke, overheated and confused" },
+  { icon: "☠️", key: "poisoning", scenario: "swallowed poison or overdose" },
 ];
 const SYMPTOMS: [string, string][] = [["unconscious", "Unconscious"], ["not_breathing", "Not breathing"], ["severe_bleeding", "Severe bleeding"], ["chest_pain", "Chest pain"], ["breathing_difficulty", "Breathing difficulty"], ["stroke_signs", "Stroke signs"], ["seizure", "Seizure"], ["confusion", "Confusion"], ["fracture", "Fracture"], ["burn", "Burn"], ["allergic_reaction", "Allergic reaction"], ["fever", "Fever"]];
 const levelBadge: Record<string, string> = { LOW: "badge--safe", MODERATE: "badge--warn", HIGH: "badge--danger", CRITICAL: "badge--danger" };
 
 export default function AssistantPanel({ token, session }: { token: string; session: string | null }) {
+  const { lang, t } = useI18n();
   const [q, setQ] = useState(""); const [active, setActive] = useState(""); const [out, setOut] = useState<any>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(""); const [more, setMore] = useState(false);
   const [sym, setSym] = useState<string[]>([]); const [age, setAge] = useState(""); const [tri, setTri] = useState<any>(null);
@@ -24,7 +35,9 @@ export default function AssistantPanel({ token, session }: { token: string; sess
     if (!out || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const text = [out.disclaimer, out.title, ...(out.warnings || []), ...out.steps.map((s: string, i: number) => `Step ${i + 1}. ${s}`)].join(" ");
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang === "hi" ? "hi-IN" : lang === "mr" ? "mr-IN" : "en-US";
+    window.speechSynthesis.speak(utterance);
   };
   const triage = async () => {
     setErr("");
@@ -34,28 +47,31 @@ export default function AssistantPanel({ token, session }: { token: string; sess
 
   return (
     <section aria-labelledby="ai-title">
-      <h2 className="section-title" id="ai-title">🤖 AI emergency assistant</h2>
-      <p className="text-sm mb-md">Call your local emergency number first. Tap what is happening for step-by-step help{session ? ", personalised with the verified patient data" : ". Verify below to personalise it with allergies and medications"}.</p>
+      <h2 className="section-title" id="ai-title">{t("ai.title")}</h2>
+      <p className="text-sm mb-md">{session ? t("ai.subtitleVerified") : t("ai.subtitle")}</p>
       <div className="emergency-type-grid">
-        {shown.map(([icon, label, scenario]) => (
-          <button key={label} type="button" className={`emergency-type-btn ${active === label ? "active" : ""}`} onClick={() => { setQ(scenario); ask(scenario, label); }} disabled={busy}>
-            <span className="emergency-type-btn__icon" aria-hidden>{icon}</span>{label}
-          </button>
-        ))}
+        {shown.map((item) => {
+          const label = t(`ai.${item.key}`);
+          return (
+            <button key={item.key} type="button" className={`emergency-type-btn ${active === label ? "active" : ""}`} onClick={() => { setQ(item.scenario); ask(item.scenario, label); }} disabled={busy}>
+              <span className="emergency-type-btn__icon" aria-hidden>{item.icon}</span>{label}
+            </button>
+          );
+        })}
       </div>
-      <button type="button" className="btn btn--ghost btn--sm mb-md" onClick={() => setMore(!more)}>{more ? "Show fewer" : "More emergencies"}</button>
+      <button type="button" className="btn btn--ghost btn--sm mb-md" onClick={() => setMore(!more)}>{more ? t("ai.showFewer") : t("ai.showMore")}</button>
       <div className="row" style={{ flexWrap: "nowrap" }}>
-        <input aria-label="Describe the emergency" className="form-input" placeholder="Or describe what is happening..." value={q} maxLength={500} onChange={(e) => { setQ(e.target.value); setActive(""); }} onKeyDown={(e) => e.key === "Enter" && ask(q)} />
-        <button className="btn btn--primary" disabled={busy || q.trim().length < 3} onClick={() => ask(q)}>{busy ? <span className="spinner" /> : "Get help"}</button>
+        <input aria-label="Describe the emergency" className="form-input" placeholder={t("ai.inputPlaceholder")} value={q} maxLength={500} onChange={(e) => { setQ(e.target.value); setActive(""); }} onKeyDown={(e) => e.key === "Enter" && ask(q)} />
+        <button className="btn btn--primary" disabled={busy || q.trim().length < 3} onClick={() => ask(q)}>{busy ? <span className="spinner" /> : t("ai.getHelp")}</button>
       </div>
       {err && <div className="form-error" role="alert">{err}</div>}
       {out && (
         <div className="ai-panel mt-md animate-in" aria-live="polite">
-          <div className="ai-panel__header">🤖 {out.title}<span className="spacer" /><span className="badge">{out.source}</span><button className="btn btn--ghost btn--sm" onClick={speak}>🔊 Read aloud</button></div>
+          <div className="ai-panel__header">🤖 {out.title}<span className="spacer" /><span className="badge">{out.source}</span><button className="btn btn--ghost btn--sm" onClick={speak}>{t("ai.readAloud")}</button></div>
           <div className="ai-warning" style={{ background: "rgba(239,68,68,.15)", fontWeight: 600 }}>📞 {out.disclaimer}</div>
-          {(out.warnings || []).map((w: string) => <div key={w} className="ai-warning">⚠️ <span><b>This patient:</b> {w}</span></div>)}
+          {(out.warnings || []).map((w: string) => <div key={w} className="ai-warning">⚠️ <span><b>{t("ai.patientNotice")}</b> {w}</span></div>)}
           <ol className="ai-steps">{out.steps.map((s: string) => <li key={s}>{s}</li>)}</ol>
-          {!out.matched && <p className="text-xs text-muted mt-md">I couldn't match that exactly, so here is general guidance. Try picking one of the buttons above.</p>}
+          {!out.matched && <p className="text-xs text-muted mt-md">{t("ai.noMatch")}</p>}
         </div>
       )}
       <details className="card card--tight mt-md">

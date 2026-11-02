@@ -7,11 +7,23 @@ export const SEVERITY = ["mild", "moderate", "severe", "life-threatening"] as co
 export const MRI = ["safe", "conditional", "unsafe", "unknown"] as const;
 const YNU = ["yes", "no", "unknown"] as const;
 const TRANSFUSION = ["accepts", "refuses", "unknown"] as const;
+const SEX = ["unknown", "female", "male", "other"] as const;
+const SUBSTANCE = ["never", "former", "current"] as const;
+const ALCOHOL = ["never", "occasional", "regular"] as const;
 
 export const profileSchema = z.object({
   fullName: z.string().trim().min(1).max(120),
   dateOfBirth: z.string().trim().max(20).optional(),
   bloodGroup: z.enum(BLOOD_GROUPS).default("Unknown"),
+  sex: z.enum(SEX).default("unknown"),
+  preferredLanguage: text(60),
+  organDonorId: text(40),
+  height: text(10),
+  weight: text(10),
+  communicationNeeds: text(200),
+  smoking: z.enum(SUBSTANCE).default("never"),
+  alcohol: z.enum(ALCOHOL).default("never"),
+  pharmacy: text(120),
   allergies: z.array(short).max(30).default([]),
   conditions: z.array(short).max(30).default([]),
   medications: z.array(short).max(40).default([]),
@@ -43,13 +55,14 @@ export const profileSchema = z.object({
 });
 export type Profile = z.infer<typeof profileSchema>;
 
-export const FIELDS = ["fullName", "dateOfBirth", "bloodGroup", "allergies", "conditions", "medications", "implants", "organDonor", "emergencyContacts", "doctor", "emergencyInstructions", "insurance", "notes",
+export const FIELDS = ["fullName", "dateOfBirth", "bloodGroup", "sex", "preferredLanguage", "organDonorId", "height", "weight", "communicationNeeds", "smoking", "alcohol", "pharmacy", "allergies", "conditions", "medications", "implants", "organDonor", "emergencyContacts", "doctor", "emergencyInstructions", "insurance", "notes",
   "prescriptions", "allergyDetails", "surgeries", "vaccinations", "implantDetails", "advanceDirectives", "preferredHospital", "specialists", "insuranceDetails", "lastVerifiedAt"] as const;
 export type Field = (typeof FIELDS)[number];
 export const DEFAULT_VISIBILITY: Record<Field, 1 | 2 | 3> = {
   fullName: 1, bloodGroup: 1, allergies: 1, emergencyContacts: 1, organDonor: 1, emergencyInstructions: 1,
-  conditions: 2, medications: 2, implants: 2, doctor: 2,
-  dateOfBirth: 3, insurance: 3, notes: 3,
+  preferredLanguage: 1, communicationNeeds: 1,
+  conditions: 2, medications: 2, implants: 2, doctor: 2, sex: 2, smoking: 2, alcohol: 2,
+  dateOfBirth: 3, insurance: 3, notes: 3, organDonorId: 3, height: 3, weight: 3, pharmacy: 3,
   prescriptions: 2, allergyDetails: 2, lastVerifiedAt: 2,
   surgeries: 3, vaccinations: 3, implantDetails: 3, advanceDirectives: 3, preferredHospital: 3, specialists: 3, insuranceDetails: 3,
 };

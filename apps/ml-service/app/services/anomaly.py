@@ -36,13 +36,38 @@ class AnomalyModel:
         x = [f[k] for k in FEATURES]
         m = self.model_score(x)
         rules, reasons = 0.0, []
-        if f["scans_1m"] > 10: rules += 40; reasons.append("high scan velocity")
-        elif f["scans_1m"] > 5: rules += 20; reasons.append("elevated scan velocity")
-        if f["scans_10m"] > 30: rules += 25; reasons.append("many scans in 10 minutes")
-        if f["distinct_ips_10m"] > 4: rules += 30; reasons.append("many distinct IPs")
-        elif f["distinct_ips_10m"] > 2: rules += 12; reasons.append("multiple IPs")
-        if f["failed_otp_ratio"] > 0.5: rules += 25; reasons.append("high failed OTP ratio")
-        score = int(round(min(100.0, max(m * 0.9, rules))))
+        if f["scans_1m"] >= 18:
+            rules += 60
+            reasons.append("critical scan burst")
+        elif f["scans_1m"] > 10:
+            rules += 35
+            reasons.append("high scan velocity")
+        elif f["scans_1m"] > 5:
+            rules += 20
+            reasons.append("elevated scan velocity")
+
+        if f["scans_10m"] > 30:
+            rules += 30
+            reasons.append("many scans in 10 minutes")
+        elif f["scans_10m"] >= 18:
+            rules += 25
+            reasons.append("sustained scan burst")
+        elif f["scans_10m"] >= 10:
+            rules += 12
+            reasons.append("elevated 10m scans")
+
+        if f["distinct_ips_10m"] > 4:
+            rules += 30
+            reasons.append("many distinct IPs")
+        elif f["distinct_ips_10m"] > 2:
+            rules += 15
+            reasons.append("multiple IPs")
+
+        if f["failed_otp_ratio"] > 0.5:
+            rules += 25
+            reasons.append("high failed OTP ratio")
+
+        score = int(round(min(100.0, max(m, rules))))
         if m >= 70 and "statistical outlier" not in reasons:
             reasons.append("statistical outlier (isolation forest)")
         return {"score": score, "reasons": reasons, "model_score": round(m, 1)}

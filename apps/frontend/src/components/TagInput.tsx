@@ -1,9 +1,11 @@
 import { useId, useState } from "react";
+import { useI18n } from "../lib/i18n";
 
 interface Props { id?: string; label: string; value: string[]; onChange: (v: string[]) => void; placeholder?: string; variant?: "amber" | "red" | "blue" | "purple"; suggestions?: string[]; max?: number }
 
 /** Type and press Enter or comma to add. Backspace removes the last tag. Pending text is added on blur. */
 export function TagInput({ id, label, value, onChange, placeholder, variant = "amber", suggestions = [], max = 30 }: Props) {
+  const { t } = useI18n();
   const auto = useId();
   const inputId = id || auto;
   const [text, setText] = useState("");
@@ -31,7 +33,7 @@ export function TagInput({ id, label, value, onChange, placeholder, variant = "a
           onBlur={() => add(text)} />
         {suggestions.length > 0 && <datalist id={`${inputId}-list`}>{suggestions.map((s) => <option key={s} value={s} />)}</datalist>}
       </div>
-      <div className="form-hint">Press Enter or comma to add</div>
+      <div className="form-hint">{t("common.tagHint")}</div>
     </div>
   );
 }
