@@ -262,37 +262,40 @@ export default function QrTab() {
 
       {live && (
         <div className="print-only" aria-hidden>
-          <div className="wallet">
-            <div className="wallet__side">
-              <Logo size={64} />
+          <div className="id-card">
+            <div className="id-card__header">
+              <div className="id-card__brand">
+                <Logo size={24} />
+                <div className="id-card__brand-text">
+                  <b>VEAP</b>
+                  <span>Verified Emergency Access Protocol</span>
+                </div>
+              </div>
+              <div className="id-card__title-box">
+                <div className="id-card__plus">+</div>
+                <div className="id-card__title-text">
+                  <b>{t("qr.walletTitle")}</b>
+                  <span>{t("qr.walletSub")}</span>
+                </div>
+              </div>
             </div>
-            <div className="wallet__body">
-              <div>
-                <div
-                  style={{
-                    fontWeight: 800,
-                    color: "#dc2626",
-                    fontSize: "11pt",
-                  }}
-                >
-                  EMERGENCY MEDICAL ID
-                </div>
-                <div style={{ fontSize: "8pt" }}>
-                  Scan for critical medical info
+
+            <div className="id-card__body">
+              <div className="id-card__profile">
+                <div className="id-card__avatar">👤</div>
+                <div className="id-card__info">
+                  <b>{user?.name}</b>
+                  <span>{t("common.patient") || "Patient"}</span>
                 </div>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-end",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div style={{ fontSize: "9pt", fontWeight: 700 }}>
-                  {user?.name}
-                </div>
-                <img src={live.dataUrl} alt="" />
+              <div className="id-card__qr">
+                <img src={live.dataUrl} alt="QR Code" />
               </div>
+            </div>
+
+            <div className="id-card__footer">
+              <div className="id-card__heart">❤️</div>
+              <span>SCAN • VERIFY • SAVE A LIFE</span>
             </div>
           </div>
         </div>

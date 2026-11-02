@@ -8,6 +8,7 @@ import { startTelegramBot } from "./services/telegram.service";
 import dns from "dns"
 dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4"]);
 
+
 try { await connectDb(); }
 catch (e: any) {
   console.error(`\n[veap-backend] Cannot connect to MongoDB (${env.mongoDb})\n  ${e?.message}\n  Start MongoDB (e.g. "docker run -d -p 27017:27017 mongo:7") or set MONGO_URI to your Atlas connection string.\n`);
