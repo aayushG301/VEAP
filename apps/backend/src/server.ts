@@ -6,7 +6,7 @@ import { seedDemoData } from "./demo/demoSeed";
 import { registerTelegramHandlers } from "./modules/telegram/telegram.handlers";
 import { startTelegramBot } from "./services/telegram.service";
 import dns from "dns"
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4"]);
 
 try { await connectDb(); }
 catch (e: any) {
