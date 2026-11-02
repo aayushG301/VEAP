@@ -32,6 +32,9 @@ export async function api<T = any>(path: string, opts: Opts = {}): Promise<T> {
     const ra = Number(res.headers.get("retry-after"));
     throw new ApiError(res.status, json.error || "error", json.issues?.[0] ? `${json.issues[0].path}: ${json.issues[0].message}` : json.message || res.statusText, json, Number.isFinite(ra) && ra > 0 ? ra : null);
   }
+  // The service worker served a saved Tier 1 copy because the network is unreachable. Treat it as an
+  // offline read so the UI marks it as an unverified snapshot rather than presenting it as live data.
+  if (res.headers.get("X-VEAP-Offline") === "1") throw new ApiError(503, "offline", "You are offline — showing saved information.", { cached: json }, null);
   return json as T;
 }
 

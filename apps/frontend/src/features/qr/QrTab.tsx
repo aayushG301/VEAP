@@ -51,17 +51,16 @@ export default function QrTab() {
         <div
           className={`card ${live?.status === "locked" ? "card--danger" : ""}`}
         >
-          <div className="card__title">📱 Your emergency QR code</div>
+          <div className="card__title">{t("qr.yourCode")}</div>
           {!live ? (
             <div
               className="center-state"
               style={{ padding: "var(--space-lg)" }}
             >
               <div style={{ fontSize: 56 }}>📷</div>
-              <h4 style={{ margin: ".5rem 0" }}>No QR code yet</h4>
+              <h4 style={{ margin: ".5rem 0" }}>{t("qr.noCodeTitle")}</h4>
               <p className="mb-md">
-                It contains no health data, only a signed, revocable link to
-                your profile.
+                {t("qr.noCodeDesc")}
               </p>
               <button
                 className="btn btn--primary btn--lg"
@@ -69,17 +68,17 @@ export default function QrTab() {
                 onClick={() =>
                   act(
                     () => api("/qr", { method: "POST", body: {} }),
-                    "QR code created",
+                    t("qr.createdToast"),
                   )
                 }
               >
-                ✨ Generate my QR code
+                {t("qr.generate")}
               </button>
             </div>
           ) : (
             <div className="qr-display">
               <div className="qr-display__code">
-                <img src={live.dataUrl} alt="Emergency QR code" />
+                <img src={live.dataUrl} alt={t("qr.yourCode")} />
               </div>
               <p
                 className="text-sm mt-md"
@@ -116,7 +115,7 @@ export default function QrTab() {
                             method: "POST",
                             body: {},
                           }),
-                        "QR code unlocked",
+                        t("qr.unlockedToast"),
                       )
                     }
                   >
@@ -143,8 +142,8 @@ export default function QrTab() {
                   className="btn btn--ghost btn--sm"
                   onClick={() => {
                     navigator.clipboard?.writeText(live.url).then(
-                      () => toast("Link copied", "success"),
-                      () => toast("Could not copy", "error"),
+                      () => toast(t("qr.linkCopied"), "success"),
+                      () => toast(t("qr.copyFailed"), "error"),
                     );
                   }}
                 >
@@ -161,9 +160,7 @@ export default function QrTab() {
               </div>
               {isLocal && (
                 <p className="text-xs text-muted mt-md">
-                  💡 This link points to a local address, so a phone camera
-                  can't open it. To scan with a phone, set{" "}
-                  <code>PUBLIC_URL</code> to an address your phone can reach.
+                  {t("qr.localHint")}
                 </p>
               )}
             </div>
@@ -188,7 +185,7 @@ export default function QrTab() {
                 className="btn btn--danger btn--sm"
                 onClick={() => setConfirm("revoke")}
               >
-                ⛔ Revoke
+                {t("qr.revoke")}
               </button>
             </div>
           </div>
@@ -228,32 +225,32 @@ export default function QrTab() {
           </div>
         )}
         <div className="card">
-          <div className="card__title">💡 Where to keep it</div>
+          <div className="card__title">{t("qr.whereToKeep")}</div>
           <ul
             className="stack text-sm"
             style={{ paddingLeft: "1.1rem", color: "var(--text-secondary)" }}
           >
-            <li>Print the wallet card and keep it behind your ID.</li>
-            <li>Set the PNG as your phone's lock-screen wallpaper.</li>
-            <li>Stick a copy inside your helmet or on your bag.</li>
+            <li>{t("qr.keep1")}</li>
+            <li>{t("qr.keep2")}</li>
+            <li>{t("qr.keep3")}</li>
           </ul>
         </div>
         <div className="card">
-          <div className="card__title">🕘 History</div>
+          <div className="card__title">{t("qr.history")}</div>
           <ul className="timeline">
-            {tokens.map((t) => (
-              <li key={t.id}>
+            {tokens.map((tk) => (
+              <li key={tk.id}>
                 <span
-                  className={`timeline__dot timeline__dot--${t.status === "active" ? "green" : t.status === "locked" ? "red" : ""}`}
+                  className={`timeline__dot timeline__dot--${tk.status === "active" ? "green" : tk.status === "locked" ? "red" : ""}`}
                 />
                 <div>
-                  {t.status === "active"
-                    ? "Active code"
-                    : t.status === "locked"
-                      ? "Locked code"
-                      : "Revoked code"}
+                  {tk.status === "active"
+                    ? t("qr.statusActive")
+                    : tk.status === "locked"
+                      ? t("qr.statusLocked")
+                      : t("qr.statusRevoked")}
                 </div>
-                <span className="timeline__time">{fmtDate(t.createdAt)}</span>
+                <span className="timeline__time">{fmtDate(tk.createdAt)}</span>
               </li>
             ))}
           </ul>
@@ -302,30 +299,30 @@ export default function QrTab() {
       )}
       <ConfirmModal
         open={confirm === "regen"}
-        title="Regenerate QR code?"
-        text="This revokes your current QR code and creates a new one. Old printed cards will stop working."
-        confirmLabel="Regenerate"
+        title={t("qr.regenTitle")}
+        text={t("qr.regenText")}
+        confirmLabel={t("qr.regenConfirm")}
         danger={false}
         busy={busy}
         onClose={() => setConfirm(null)}
         onConfirm={() =>
           act(
             () => api("/qr", { method: "POST", body: {} }),
-            "New QR code created",
+            t("qr.regenToast"),
           )
         }
       />
       <ConfirmModal
         open={confirm === "revoke"}
-        title="Revoke QR code?"
-        text="Anyone holding this code will immediately lose access, including live sessions. You can generate a new code afterwards."
-        confirmLabel="Revoke now"
+        title={t("qr.revokeTitle")}
+        text={t("qr.revokeText")}
+        confirmLabel={t("qr.revokeConfirm")}
         busy={busy}
         onClose={() => setConfirm(null)}
         onConfirm={() =>
           act(
             () => api(`/qr/${live.id}/revoke`, { method: "POST", body: {} }),
-            "QR code revoked",
+            t("qr.revokedToast"),
           )
         }
       />

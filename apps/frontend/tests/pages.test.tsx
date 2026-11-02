@@ -75,7 +75,7 @@ describe("emergency page", () => {
     fireEvent.change(screen.getByLabelText("Your phone number"), { target: { value: "+91 90000 12345" } });
     fireEvent.click(screen.getByRole("button", { name: /Send code to the emergency contact/ }));
     expect(await screen.findByText(/Demo mode/)).toBeInTheDocument();
-    expect(screen.getByText(/Ravi/, { selector: "b" })).toBeInTheDocument();
+    expect(screen.getByText(/Code sent to Ravi/)).toBeInTheDocument();
     expect(otpBody.phone).toBe("+91 90000 12345");
     fireEvent.click(screen.getByRole("button", { name: "Auto-fill" }));
     expect(await screen.findByText(/Anticoagulant plus NSAID/)).toBeInTheDocument();
@@ -98,10 +98,62 @@ describe("emergency page", () => {
     expect(screen.getByText(/Retrying automatically in 4\d?s/)).toBeInTheDocument();
   });
   it("falls back to the saved Level 1 copy when offline", async () => {
-    localStorage.setItem(`veap:tier1:${TOKEN}`, JSON.stringify({ at: Date.now() - 60000, data: tier1 }));
+    localStorage.setItem(`veap:tier1:${TOKEN}`, JSON.stringify({ at: Date.now() - 60000, data: tier1, updatedAt: Date.now() - 3600000 }));
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
     render(<MemoryRouter initialEntries={[`/e/${TOKEN}`]}><ToastProvider><AuthProvider><App /></AuthProvider></ToastProvider></MemoryRouter>);
     expect(await screen.findByText("Asha Verma")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/Offline: showing the information saved/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("offline-banner")).toHaveTextContent("Offline — showing saved information"));
+  });
+});
+
+const patient = { id: "u1", email: "asha@example.com", name: "Asha Verma", role: "patient", mfaEnabled: false, responderStatus: null };
+const activeQr = { id: "q1", status: "active", riskScore: 20, createdAt: Date.now() - 86400000, revokedAt: null, url: "https://veap.example/e/abc.def", dataUrl: "data:image/png;base64,iVBORw0KGgo=" };
+const revokedQr = { id: "q0", status: "revoked", riskScore: 0, createdAt: Date.now() - 172800000, revokedAt: Date.now() - 3600000 };
+
+function mountAsPatient(path: string, routes: (url: string, init?: any) => Response | undefined) {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (u: any, init?: any) => {
+    const url = String(u);
+    if (url.endsWith("/auth/refresh")) return json(200, { accessToken: "T", user: patient });
+    return routes(url, init) ?? json(404, { error: "not_found", message: "nope" });
+  });
+  return render(<MemoryRouter initialEntries={[path]}><ToastProvider><AuthProvider><App /></AuthProvider></ToastProvider></MemoryRouter>);
+}
+
+describe("dashboard QR tab", () => {
+  it("renders the QR code, risk meter and history without blanking the page", async () => {
+    mountAsPatient("/dashboard?tab=qr", (u) => {
+      if (u.endsWith("/notifications")) return json(200, { unread: 0 });
+      if (u.endsWith("/api/v1/qr")) return json(200, { tokens: [activeQr, revokedQr] });
+      return undefined;
+    });
+    expect(await screen.findByText("Active code")).toBeInTheDocument();
+    expect(screen.getByText("Revoked code")).toBeInTheDocument();
+    expect(screen.getByText("20 / 100")).toBeInTheDocument();
+    expect(screen.getByText("🕘 History")).toBeInTheDocument();
+    expect(screen.getByAltText("📱 Your emergency QR code")).toBeInTheDocument();
+  });
+
+  it("regression: history labels follow the selected language (the map callback must not shadow the t() helper)", async () => {
+    localStorage.setItem("veap_lang", "hi");
+    mountAsPatient("/dashboard?tab=qr", (u) => {
+      if (u.endsWith("/notifications")) return json(200, { unread: 0 });
+      if (u.endsWith("/api/v1/qr")) return json(200, { tokens: [activeQr, revokedQr] });
+      return undefined;
+    });
+    expect(await screen.findByText("सक्रिय कोड")).toBeInTheDocument();
+    expect(screen.getByText("निरस्त कोड")).toBeInTheDocument();
+  });
+
+  it("shows the empty state and creates a code through POST /qr", async () => {
+    let posted = false;
+    mountAsPatient("/dashboard?tab=qr", (u, init) => {
+      if (u.endsWith("/notifications")) return json(200, { unread: 0 });
+      if (u.endsWith("/api/v1/qr") && init?.method === "POST") { posted = true; return json(201, { token: activeQr }); }
+      if (u.endsWith("/api/v1/qr")) return json(200, { tokens: [] });
+      return undefined;
+    });
+    expect(await screen.findByText("No QR code yet")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Generate my QR code/ }));
+    await waitFor(() => expect(posted).toBe(true));
   });
 });

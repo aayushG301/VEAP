@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { useI18n } from "../lib/i18n";
 
 interface Props { open: boolean; title: string; onClose: () => void; children: ReactNode; danger?: boolean }
 
@@ -29,12 +30,13 @@ export function Modal({ open, title, onClose, children, danger }: Props) {
 
 export function ConfirmModal({ open, title, text, confirmLabel, danger = true, busy, onConfirm, onClose }:
   { open: boolean; title: string; text: string; confirmLabel: string; danger?: boolean; busy?: boolean; onConfirm: () => void; onClose: () => void }) {
+  const { t } = useI18n();
   return (
     <Modal open={open} title={title} onClose={onClose} danger={danger}>
       <p className="modal__text">{text}</p>
       <div className="modal__actions">
-        <button className="btn btn--ghost" onClick={onClose}>Cancel</button>
-        <button className={`btn ${danger ? "btn--danger" : "btn--primary"}`} disabled={busy} onClick={onConfirm}>{busy ? "Please wait..." : confirmLabel}</button>
+        <button className="btn btn--ghost" onClick={onClose}>{t("common.cancel")}</button>
+        <button className={`btn ${danger ? "btn--danger" : "btn--primary"}`} disabled={busy} onClick={onConfirm}>{busy ? t("common.pleaseWait") : confirmLabel}</button>
       </div>
     </Modal>
   );

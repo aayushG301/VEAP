@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, refreshSession, setAccessToken } from "./api";
+import { clearOfflineData } from "./offline";
 
 export interface User { id: string; email: string; name: string; role: string; mfaEnabled: boolean; responderStatus: string | null }
 interface Ctx {
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout: async () => {
       try { await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include", headers: { "X-Requested-With": "veap" } }); } catch { /* ignore */ }
       setAccessToken(null); setUser(null);
+      await clearOfflineData(); // drop saved Tier 1 emergency copies so they cannot outlive the session
     },
     reload: async () => { const j = await api("/auth/me"); setUser(j.user); },
   }), [user, loading]);

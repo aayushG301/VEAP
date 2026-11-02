@@ -6,7 +6,7 @@ import { useI18n } from "../../lib/i18n";
 interface Granted { sessionToken: string; tier: number; expiresAt: number }
 
 export default function VerifyPanel({ token, onGranted }: { token: string; onGranted: (g: Granted) => void }) {
-  const { lang, t } = useI18n();
+  const { t } = useI18n();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState(""); const [otp, setOtp] = useState<any>(null); const [code, setCode] = useState("");
   const [err, setErr] = useState(""); const [bad, setBad] = useState(false); const [busy, setBusy] = useState(false); const [cool, setCool] = useState(0);
@@ -23,7 +23,7 @@ export default function VerifyPanel({ token, onGranted }: { token: string; onGra
     try { onGranted(await api("/access/otp/verify", { auth: false, body: { token, otpId: otp.otpId, code: c } })); }
     catch (e: any) {
       setBad(true); setCode("");
-      if (e instanceof ApiError && e.code === "otp_wrong") setErr(`Incorrect code. ${e.extra.attemptsLeft} attempt${e.extra.attemptsLeft === 1 ? "" : "s"} left.`);
+      if (e instanceof ApiError && e.code === "otp_wrong") setErr(t("verify.incorrectCode", { n: e.extra.attemptsLeft }));
       else if (e instanceof ApiError && (e.code === "otp_locked" || e.code === "otp_invalid")) { setErr(e.message); setStep("phone"); setOtp(null); }
       else setErr(e.message);
     } finally { setBusy(false); }
@@ -43,19 +43,13 @@ export default function VerifyPanel({ token, onGranted }: { token: string; onGra
       ) : (
         <div>
           <p className="text-sm text-center">{otp.sentTo === "emergency_contact"
-            ? <>
-                {lang === "hi" ? "कोड भेजा गया है " : lang === "mr" ? "कोड पाठवला आहे " : "Code sent to "}
-                <b style={{ color: "var(--text-primary)" }}>{otp.contactName || (lang === "hi" ? "मरीज के आपातकालीन संपर्क" : lang === "mr" ? "रुग्णाच्या आपत्कालीन संपर्काला" : "the patient's emergency contact")}</b>
-                {` (${otp.maskedTarget}). `}
-                {lang === "hi" ? "उनसे कोड पूछें।" : lang === "mr" ? "त्यांना कोड वाचून दाखवण्यास सांगा." : "Ask them to read it to you."}
-              </>
-            : <>
-                {lang === "hi" ? "मरीज का कोई आपातकालीन संपर्क दर्ज नहीं है, अतः कोड भेजा गया " : lang === "mr" ? "रुग्णाचा कोणताही आपत्कालीन संपर्क नोंदवलेला नाही, त्यामुळे कोड पाठवला " : "The patient has no emergency contact on file, so the code was sent to "}
-                <b style={{ color: "var(--text-primary)" }}>{lang === "hi" ? "आपके फोन पर" : lang === "mr" ? "तुमच्या फोनवर" : "your phone"}</b>.
-              </>}</p>
+            ? otp.contactName
+              ? t("verify.codeSentTo", { name: otp.contactName, target: otp.maskedTarget })
+              : t("verify.codeSentToGeneric", { target: otp.maskedTarget })
+            : t("verify.codeSentToOwn")}</p>
           {otp.delivery === "telegram" && <p className="text-xs text-muted text-center mt-sm">{t("verify.telegramNote")}</p>}
           {otp.devOtp && (
-            <div className="demo-banner mt-md"><span>🧪 <b>Demo mode:</b> SMS is simulated. The code is <b>{otp.devOtp}</b></span>
+            <div className="demo-banner mt-md"><span>🧪 <b>{t("verify.demoSms", { code: otp.devOtp })}</b></span>
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setCode(otp.devOtp); verify(otp.devOtp); }}>{t("verify.autoFill")}</button></div>)}
           <OtpBoxes value={code} onChange={(v) => { setCode(v); setBad(false); }} error={bad} onComplete={(c) => verify(c)} disabled={busy} />
           {err && <p className="form-error text-center" role="alert">{err}</p>}

@@ -141,9 +141,12 @@ emergencyRouter.get("/:token", scanLimiter, async (req, res) => {
     title: "Emergency profile scanned",
     body: `Public (Tier 1) view opened${geo ? ` near ${geo}` : ""}.`,
   });
+  // `profileUpdatedAt` lets the offline view show when the patient last edited the profile.
+  const { updatedAt } = await loadProfile(t.userId);
   res.json({
     tier: 1,
     data: await fieldsForTier(t.userId, 1),
+    profileUpdatedAt: updatedAt,
     risk: { level: level(risk.score), source: risk.source, score: risk.score, reasons: risk.reasons },
     otpMode: env.otpMode,
     demo: env.demoSeed ? demoHints() : null,

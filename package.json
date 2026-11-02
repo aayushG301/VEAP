@@ -19,7 +19,8 @@
     "build": "npm run build -w apps/frontend",
     "dev:ml:win": "cd apps/ml-service && python -m uvicorn app.main:app --reload --port 8001",
     "test:ml:win": "cd apps/ml-service && python -m pytest -q",
-    "test:ui": "node scripts/ui-e2e.mjs"
+    "test:ui": "node scripts/ui-e2e.mjs",
+    "demo:offline": "node scripts/offline-demo.mjs"
   },
   "engines": {
     "node": ">=20.12"

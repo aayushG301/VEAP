@@ -45,9 +45,16 @@ export const TIER_META: Record<number, { icon: string; short: string; cls: strin
 };
 
 export const cacheKey = (token: string) => `veap:tier1:${token}`;
-export function saveTier1(token: string, data: unknown) {
-  try { localStorage.setItem(cacheKey(token), JSON.stringify({ at: Date.now(), data })); } catch { /* storage may be unavailable */ }
+const TIER1_PREFIX = "veap:tier1:";
+/** A saved Tier 1 (public) emergency view: when it was fetched here, and when the patient last updated it. */
+export interface Tier1Cache { at: number; data: any; updatedAt: number | null }
+export function saveTier1(token: string, data: unknown, updatedAt: number | null = null) {
+  try { localStorage.setItem(cacheKey(token), JSON.stringify({ at: Date.now(), data, updatedAt })); } catch { /* storage may be unavailable */ }
 }
-export function loadTier1(token: string): { at: number; data: any } | null {
+export function loadTier1(token: string): Tier1Cache | null {
   try { const v = localStorage.getItem(cacheKey(token)); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+/** Drop every saved Tier 1 copy (used when a user logs out or clears local data). */
+export function clearTier1Cache() {
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith(TIER1_PREFIX)) localStorage.removeItem(k); } catch { /* storage may be unavailable */ }
 }

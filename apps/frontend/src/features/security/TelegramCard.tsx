@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/Toast";
+import { useI18n } from "../../lib/i18n";
 
 interface Link {
   id: string;
@@ -11,6 +12,7 @@ interface Link {
 /** Connect the emergency contact's Telegram: they receive the Level 2 codes and Level 3 override requests (with Block / Deny buttons). */
 export default function TelegramCard() {
   const { toast } = useToast();
+  const { t } = useI18n();
   const [st, setSt] = useState<{
     configured: boolean;
     active: boolean;
@@ -56,37 +58,30 @@ export default function TelegramCard() {
   return (
     <div className="card">
       <div className="card__title">
-        📲 Emergency contact alerts (Telegram)
+        {t("telegram.title")}
         <span className="spacer" />
         <span
           className={`badge ${st.links.length ? "badge--safe" : "badge--warn"}`}
         >
-          {st.links.length ? "Connected" : "Not connected"}
+          {st.links.length ? t("telegram.connected") : t("telegram.notConnected")}
         </span>
       </div>
-      <p className="text-sm mb-md">
-        When a stranger scans your QR and asks for Level 2 access, the 6-digit
-        code goes <b>privately to your emergency contact's Telegram</b>, never
-        to the stranger's screen. Level 3 override requests arrive there too,
-        with <b>Approve / Deny</b> buttons. Free, no SMS fees.
-      </p>
+      <p className="text-sm mb-md">{t("telegram.desc")}</p>
       {!st.configured && (
         <div className="card card--warning card--tight text-sm mb-md">
-          This server has no Telegram bot yet. Create one with @BotFather and
-          set <code>TELEGRAM_BOT_TOKEN</code> (see README).
+          {t("telegram.notConfigured")}
         </div>
       )}
       {st.configured && !st.active && (
         <div className="card card--warning card--tight text-sm mb-md">
-          The bot is ready, but <code>OTP_MODE</code> is not{" "}
-          <code>telegram</code>, so codes are not sent there yet.
+          {t("telegram.notActive")}
         </div>
       )}
       {st.links.map((l) => (
         <div key={l.id} className="contact-card">
           <div>
             <h4>✅ {l.chatName}</h4>
-            <p>Connected {new Date(l.linkedAt).toLocaleDateString()}</p>
+            <p>{t("telegram.connectedOn", { date: new Date(l.linkedAt).toLocaleDateString() })}</p>
           </div>
           <button
             className="btn btn--ghost btn--sm"
@@ -95,25 +90,23 @@ export default function TelegramCard() {
               run(async () => {
                 await api(`/telegram/links/${l.id}`, { method: "DELETE" });
                 await load();
-                toast("Contact removed", "info");
+                toast(t("telegram.removed"), "info");
               })
             }
           >
-            Remove
+            {t("common.remove")}
           </button>
         </div>
       ))}
       {link && (
         <div className="text-center mb-md">
           <p className="text-sm mb-sm">
-            Ask your contact to scan this with their phone (or open the link on
-            the phone that has Telegram), then tap <b>Start</b>. Valid for 10
-            minutes.
+            {t("telegram.linkHint")}
           </p>
           <div className="qr-display__code" style={{ padding: 10 }}>
             <img
               src={link.qrDataUrl}
-              alt="Telegram connect QR code"
+              alt={t("telegram.qrAlt")}
               width={180}
             />
           </div>
@@ -124,21 +117,21 @@ export default function TelegramCard() {
               target="_blank"
               rel="noreferrer"
             >
-              Open in Telegram
+              {t("telegram.open")}
             </a>
             <button
               className="btn btn--ghost btn--sm"
               onClick={() =>
                 navigator.clipboard
                   ?.writeText(link.url)
-                  .then(() => toast("Link copied", "success"))
+                  .then(() => toast(t("common.copied"), "success"))
               }
             >
-              📋 Copy link
+              {t("telegram.copyLink")}
             </button>
           </div>
           <p className="text-xs text-muted mt-sm">
-            Waiting for them to tap Start…
+            {t("telegram.waiting")}
           </p>
         </div>
       )}
@@ -156,8 +149,8 @@ export default function TelegramCard() {
             }
           >
             {st.links.length
-              ? "Add another contact"
-              : "Connect emergency contact"}
+              ? t("telegram.addAnother")
+              : t("telegram.connect")}
           </button>
         )}
         {st.links.length > 0 && (
@@ -167,11 +160,11 @@ export default function TelegramCard() {
             onClick={() =>
               run(async () => {
                 await api("/telegram/test", { method: "POST", body: {} });
-                toast("Test message sent. Check Telegram.", "success");
+                toast(t("telegram.testSent"), "success");
               })
             }
           >
-            Send test message
+            {t("telegram.sendTest")}
           </button>
         )}
       </div>

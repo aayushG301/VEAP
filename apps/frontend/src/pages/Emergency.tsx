@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { ageFrom, loadTier1, saveTier1 } from "../lib/util";
+import { isConnectivityFailure } from "../lib/offline";
 import { Logo } from "../components/Logo";
 import { AccessPill } from "../components/AccessPill";
 import { SessionBar } from "../components/SessionBar";
@@ -19,7 +20,7 @@ const getGeo = (): Promise<string> => new Promise((res) => {
   if (!navigator.geolocation) return res("");
   navigator.geolocation.getCurrentPosition((p) => res(`?lat=${p.coords.latitude.toFixed(4)}&lng=${p.coords.longitude.toFixed(4)}`), () => res(""), { timeout: 1500, maximumAge: 300000 });
 });
-type State = "loading" | "ok" | "locked" | "revoked" | "notfound" | "limited" | "error";
+type State = "loading" | "ok" | "locked" | "revoked" | "notfound" | "limited" | "offline" | "error";
 interface Session { token: string; tier: number; startedAt: number; expiresAt: number }
 
 export default function Emergency() {
@@ -29,6 +30,10 @@ export default function Emergency() {
   const { t } = useI18n();
   const [state, setState] = useState<State>("loading");
   const [t1, setT1] = useState<any>(null); const [cachedAt, setCachedAt] = useState<number | null>(null);
+  /** "live" = fetched and validated against the backend on this load; "cached" = a saved offline copy. */
+  const [source, setSource] = useState<"live" | "cached">("live");
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
   const [retry, setRetry] = useState(0); const [reload, setReload] = useState(0);
   const [session, setSession] = useState<Session | null>(null); const [record, setRecord] = useState<any>(null);
   const [expired, setExpired] = useState(false);
@@ -37,21 +42,52 @@ export default function Emergency() {
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
 
   useEffect(() => {
+    const on = () => setOnline(true), off = () => setOnline(false);
+    window.addEventListener("online", on); window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+  // Whenever the connection comes back, re-check with the backend: a cached copy must never
+  // be trusted as still valid, and a QR revoked while we were offline must now show as revoked.
+  const wasOffline = useRef(false);
+  useEffect(() => {
+    if (!online) { wasOffline.current = true; return; }
+    if (wasOffline.current) { wasOffline.current = false; setReload((n) => n + 1); }
+  }, [online]);
+  const showingCached = useRef(false);
+
+  useEffect(() => {
     let alive = true;
     setState("loading");
     (async () => {
       try {
         const geo = await getGeo();
         const r = await api(`/emergency/${token}${geo}`, { auth: false });
-        if (!alive) return; setT1(r); setCachedAt(null); setState("ok"); saveTier1(token, r);
+        if (!alive) return;
+        setT1(r); setCachedAt(null); setUpdatedAt(r?.profileUpdatedAt ?? null); setSource("live"); setState("ok");
+        saveTier1(token, r, r?.profileUpdatedAt ?? null);
+        if (showingCached.current) { showingCached.current = false; toast(t("emergency.backOnline"), "success"); }
       } catch (e: any) {
         if (!alive) return;
-        if (e instanceof ApiError && e.status === 423) return setState("locked");
-        if (e instanceof ApiError && e.status === 410) return setState("revoked");
-        if (e instanceof ApiError && e.status === 404) return setState("notfound");
-        if (e instanceof ApiError && e.status === 429) { setRetry(e.retryAfter ?? 60); return setState("limited"); }
-        const c = loadTier1(token); // no network (or a 503 from the service worker): show the last saved Level 1 copy
-        if (c) { setT1(c.data); setCachedAt(c.at); setState("ok"); } else setState("error");
+        const status = e instanceof ApiError ? e.status : null;
+        if (status === 423) return setState("locked");
+        if (status === 410) return setState("revoked");
+        if (status === 404) return setState("notfound");
+        if (status === 429) { setRetry(e.retryAfter ?? 60); return setState("limited"); }
+        // A connectivity problem (no network, or the service worker's offline marker): fall back to
+        // the last saved Tier 1 copy. Revoked/locked/unknown/rate-limited answers above are real
+        // responses from the backend and are never masked by cached data.
+        if (isConnectivityFailure(e, navigator.onLine)) {
+          const c = loadTier1(token);
+          // Prefer this device's copy; fall back to the service worker's saved copy if local storage was cleared.
+          const saved = c?.data ?? (e instanceof ApiError ? e.extra?.cached : null);
+          if (saved) {
+            setT1(saved); setCachedAt(c?.at ?? null);
+            setUpdatedAt(c?.updatedAt ?? saved?.profileUpdatedAt ?? null);
+            setSource("cached"); showingCached.current = true; setState("ok"); return;
+          }
+          return setState("offline");
+        }
+        setState("error");
       }
     })();
     return () => { alive = false; };
@@ -84,6 +120,7 @@ export default function Emergency() {
       revoked: ["⛔", t("state.revoked.title"), t("state.revoked.desc")],
       notfound: ["⚠️", t("state.notfound.title"), t("state.notfound.desc")],
       limited: ["🚫", t("state.limited.title"), t("state.limited.desc", { retry })],
+      offline: ["📡", t("state.offline.title"), t("state.offline.desc")],
       error: ["📡", t("state.error.title"), t("state.error.desc")],
     };
     const [icon, title, text] = m[state];
@@ -97,7 +134,7 @@ export default function Emergency() {
           <div className="error-state__icon">{icon}</div><h2 className="error-state__title">{title}</h2><p>{text}</p>
           <div className="row" style={{ justifyContent: "center" }}><a className="btn btn--danger btn--lg" href="tel:112">{t("emergency.call112")}</a><a className="btn btn--danger btn--lg" href="tel:108">{t("emergency.call108")}</a></div>
           {state === "limited" && <button className="btn btn--ghost btn--sm mt-lg" onClick={() => setReportOpen(true)}>{t("emergency.reportMisuse")}</button>}
-          {(state === "error" || state === "limited") && <button className="btn btn--ghost btn--sm mt-lg" style={{ marginLeft: 8 }} onClick={() => setReload((n) => n + 1)}>{t("state.tryAgain")}</button>}
+          {(state === "error" || state === "offline" || state === "limited") && <button className="btn btn--ghost btn--sm mt-lg" style={{ marginLeft: 8 }} onClick={() => setReload((n) => n + 1)}>{t("state.tryAgain")}</button>}
           <p className="mt-lg"><Link to="/">{t("state.goHome")}</Link></p>
         </div>
         <Modal open={reportOpen} title={t("emergency.misuseTitle")} onClose={() => setReportOpen(false)}>
@@ -131,7 +168,16 @@ export default function Emergency() {
         `VEAP LEVEL 3 · ${new Date().toLocaleString()}`,
       ]} />}
       {session && <SessionBar startedAt={session.startedAt} expiresAt={session.expiresAt} onExpire={() => { setSession(null); setRecord(null); setExpired(true); }} />}
-      {cachedAt && <div className="card card--warning card--tight mt-md text-sm" role="status">{t("emergency.offlineSaved", { time: new Date(cachedAt).toLocaleString() })}</div>}
+      {source === "cached" && (
+        <div className="card card--warning mt-md text-sm" role="status" data-testid="offline-banner">
+          <b>📡 {t("emergency.offlineTitle")}</b>
+          <ul className="mt-sm" style={{ paddingLeft: "1.1rem" }}>
+            {updatedAt && <li>{t("emergency.offlineUpdated", { time: new Date(updatedAt).toLocaleString() })}</li>}
+            {cachedAt && <li>{t("emergency.offlineRetrieved", { time: new Date(cachedAt).toLocaleString() })}</li>}
+          </ul>
+          <p className="text-xs mt-sm">{t("emergency.offlineWarning")}</p>
+        </div>
+      )}
       {expired && (
         <div className="card card--warning mt-md center-state" role="alert" style={{ padding: "var(--space-lg)" }}>
           <div style={{ fontSize: 40 }}>⏰</div><h4>{t("emergency.sessionExpired")}</h4><p className="text-sm mb-md">{t("emergency.sessionExpiredDesc")}</p>
@@ -140,7 +186,7 @@ export default function Emergency() {
 
       {/* ===== LEVEL 1 ===== */}
       <div className="animate-in" style={{ paddingTop: "var(--space-lg)" }}>
-        <AccessPill tier={1} />
+        <AccessPill tier={1} stale={source === "cached"} />
         <h2 style={{ marginBottom: ".4rem" }}>{d.fullName || t("emergency.unknown")}{age !== null && <span className="text-muted" style={{ fontSize: "var(--font-lg)", fontWeight: 500 }}> · {age} {t("emergency.yrs")}</span>}</h2>
         <div className="row mb-lg" style={{ gap: ".6rem" }}>
           {d.bloodGroup && d.bloodGroup !== "Unknown" && <span className="badge badge--blood" aria-label={`Blood group ${d.bloodGroup}`}>🩸 {d.bloodGroup}</span>}
@@ -170,6 +216,7 @@ export default function Emergency() {
       <div className="mt-xl">
         <AccessPill tier={2} />
         {!session && <VerifyPanel token={token} onGranted={grant} />}
+        {!session && source === "cached" && <p className="text-xs text-muted mt-sm" role="note">{t("emergency.offlineTier2Note")}</p>}
         {session && (
           <div className="card card--success card--tight mb-md row row--between" role="status">
             <span className="text-sm">{t("emergency.verifiedLevel", { tier })}</span>

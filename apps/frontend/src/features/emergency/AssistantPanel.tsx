@@ -16,7 +16,7 @@ const TYPES: { icon: string; key: string; scenario: string }[] = [
   { icon: "🥵", key: "heatStroke", scenario: "heat stroke, overheated and confused" },
   { icon: "☠️", key: "poisoning", scenario: "swallowed poison or overdose" },
 ];
-const SYMPTOMS: [string, string][] = [["unconscious", "Unconscious"], ["not_breathing", "Not breathing"], ["severe_bleeding", "Severe bleeding"], ["chest_pain", "Chest pain"], ["breathing_difficulty", "Breathing difficulty"], ["stroke_signs", "Stroke signs"], ["seizure", "Seizure"], ["confusion", "Confusion"], ["fracture", "Fracture"], ["burn", "Burn"], ["allergic_reaction", "Allergic reaction"], ["fever", "Fever"]];
+const SYMPTOMS: string[] = ["unconscious", "not_breathing", "severe_bleeding", "chest_pain", "breathing_difficulty", "stroke_signs", "seizure", "confusion", "fracture", "burn", "allergic_reaction", "fever"];
 const levelBadge: Record<string, string> = { LOW: "badge--safe", MODERATE: "badge--warn", HIGH: "badge--danger", CRITICAL: "badge--danger" };
 
 export default function AssistantPanel({ token, session }: { token: string; session: string | null }) {
@@ -61,7 +61,7 @@ export default function AssistantPanel({ token, session }: { token: string; sess
       </div>
       <button type="button" className="btn btn--ghost btn--sm mb-md" onClick={() => setMore(!more)}>{more ? t("ai.showFewer") : t("ai.showMore")}</button>
       <div className="row" style={{ flexWrap: "nowrap" }}>
-        <input aria-label="Describe the emergency" className="form-input" placeholder={t("ai.inputPlaceholder")} value={q} maxLength={500} onChange={(e) => { setQ(e.target.value); setActive(""); }} onKeyDown={(e) => e.key === "Enter" && ask(q)} />
+        <input aria-label={t("ai.describeInput")} className="form-input" placeholder={t("ai.inputPlaceholder")} value={q} maxLength={500} onChange={(e) => { setQ(e.target.value); setActive(""); }} onKeyDown={(e) => e.key === "Enter" && ask(q)} />
         <button className="btn btn--primary" disabled={busy || q.trim().length < 3} onClick={() => ask(q)}>{busy ? <span className="spinner" /> : t("ai.getHelp")}</button>
       </div>
       {err && <div className="form-error" role="alert">{err}</div>}
@@ -75,10 +75,10 @@ export default function AssistantPanel({ token, session }: { token: string; sess
         </div>
       )}
       <details className="card card--tight mt-md">
-        <summary style={{ cursor: "pointer", fontWeight: 600 }}>🩺 Quick triage (decision support)</summary>
-        <div className="row mt-md">{SYMPTOMS.map(([k, l]) => <label key={k} className="check text-sm"><input type="checkbox" checked={sym.includes(k)} onChange={(e) => setSym(e.target.checked ? [...sym, k] : sym.filter((x) => x !== k))} /> {l}</label>)}</div>
-        <div className="row mt-md"><input aria-label="Age" className="form-input" style={{ maxWidth: 140 }} placeholder="Age (optional)" inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, "").slice(0, 3))} /><button className="btn btn--primary btn--sm" onClick={triage}>Assess urgency</button></div>
-        {tri && <div className="mt-md" role="status"><span className={`badge ${levelBadge[tri.level]}`}>Urgency: {tri.level}</span> {tri.factors?.length ? <span className="text-sm text-muted">Factors: {tri.factors.join(", ")}</span> : null}<p className="text-xs text-muted mt-sm">{tri.disclaimer}</p></div>}
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>{t("ai.quickTriage")}</summary>
+        <div className="row mt-md">{SYMPTOMS.map((k) => <label key={k} className="check text-sm"><input type="checkbox" checked={sym.includes(k)} onChange={(e) => setSym(e.target.checked ? [...sym, k] : sym.filter((x) => x !== k))} /> {t(`ai.sym.${k}`)}</label>)}</div>
+        <div className="row mt-md"><input aria-label={t("ai.ageOptional")} className="form-input" style={{ maxWidth: 140 }} placeholder={t("ai.ageOptional")} inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, "").slice(0, 3))} /><button className="btn btn--primary btn--sm" onClick={triage}>{t("ai.assess")}</button></div>
+        {tri && <div className="mt-md" role="status"><span className={`badge ${levelBadge[tri.level]}`}>{t("ai.urgency", { level: tri.level })}</span> {tri.factors?.length ? <span className="text-sm text-muted">{t("ai.factors", { list: tri.factors.join(", ") })}</span> : null}<p className="text-xs text-muted mt-sm">{tri.disclaimer}</p></div>}
       </details>
     </section>
   );
